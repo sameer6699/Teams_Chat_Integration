@@ -72,6 +72,52 @@ export const mockProjects: Project[] = [
     unreadCount: 5,
     tag: 'Active',
   },
+  // Additional static projects requested
+  {
+    id: '5',
+    name: 'AM',
+    status: 'In Progress',
+    client: 'Acme Corp',
+    detail: 'Last activity 2m ago',
+    unreadCount: 3,
+    tag: 'Active',
+  },
+  {
+    id: '6',
+    name: 'API Migration',
+    status: 'Review',
+    owner: 'DevOps',
+    detail: 'Mention from Priya',
+    unreadCount: 1,
+    tag: 'Review',
+  },
+  {
+    id: '7',
+    name: 'Mobile Alpha',
+    status: 'Planning',
+    eta: 'Oct 12',
+    detail: 'No new messages',
+    unreadCount: 0,
+    tag: 'Planning',
+  },
+  {
+    id: '8',
+    name: 'DS',
+    status: 'Active',
+    team: 'Data',
+    detail: '3 unread since yesterday',
+    unreadCount: 5,
+    tag: 'Active',
+  },
+  {
+    id: '9',
+    name: 'Integration Tests',
+    status: 'Backlog',
+    owner: 'QA',
+    detail: 'Epic created',
+    unreadCount: 0,
+    tag: 'Planning',
+  },
 ];
 
 export const mockNotifications: Notification[] = [
