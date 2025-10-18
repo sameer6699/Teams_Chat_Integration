@@ -36,13 +36,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
+        // Add timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+          console.warn('MSAL initialization timeout');
+          setLoading(false);
+        }, 10000); // 10 second timeout
+
         await msalInstance.initialize();
-        const accounts = msalInstance.getAllAccounts();
         
-        if (accounts.length > 0) {
-          setUser(accounts[0]);
+        // Handle redirect promise first
+        const response = await msalInstance.handleRedirectPromise();
+        
+        if (response && response.account) {
+          setUser(response.account);
           setIsAuthenticated(true);
+        } else {
+          // Check for existing accounts
+          const accounts = msalInstance.getAllAccounts();
+          if (accounts.length > 0) {
+            setUser(accounts[0]);
+            setIsAuthenticated(true);
+          }
         }
+        
+        clearTimeout(timeoutId);
       } catch (error) {
         console.error('Failed to initialize MSAL:', error);
       } finally {
@@ -56,15 +73,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async () => {
     try {
       setLoading(true);
-      const response = await msalInstance.loginPopup(loginRequest);
-      
-      if (response.account) {
-        setUser(response.account);
-        setIsAuthenticated(true);
-      }
+      // Use redirect instead of popup for better UX
+      await msalInstance.loginRedirect(loginRequest);
     } catch (error) {
       console.error('Login failed:', error);
-    } finally {
       setLoading(false);
     }
   };
@@ -72,7 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       setLoading(true);
-      await msalInstance.logoutPopup({
+      await msalInstance.logoutRedirect({
         postLogoutRedirectUri: process.env.NEXT_PUBLIC_AZURE_REDIRECT_URI || 'http://localhost:3000',
       });
       
@@ -80,7 +92,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsAuthenticated(false);
     } catch (error) {
       console.error('Logout failed:', error);
-    } finally {
       setLoading(false);
     }
   };
