@@ -25,21 +25,21 @@ A modern Teams-style chat application with Microsoft Entra (Azure AD) authentica
 
 You've already completed this step! Here are your credentials:
 
-- **Application (client) ID**: `9538fc54-821c-42da-b17f-51877d56db5a`
-- **Directory (tenant) ID**: `6ae3d026-e965-483e-8309-8f8f3aca71c8`
-- **Object ID**: `2867e8d5-a8c9-4081-a066-51e2150aed9d`
-- **Display Name**: `Teams-Chat-Integration`
+- **Application (client) ID**: `816158a9-dd67-4a38-83b4-6033fa01c2b5`
+- **Directory (tenant) ID**: `3843cf08-a3d1-425c-8d3c-6872729e0a4b`
+- **Object ID**: `a9d1d1f2-4d8b-4253-92fb-8a47436f053c`
+- **Display Name**: `Teams-Chat Integration`
 
 ### 2. Environment Configuration
 
 The application is already configured with your Azure AD credentials in `.env.local`:
 
 ```env
-NEXT_PUBLIC_AZURE_CLIENT_ID=9538fc54-821c-42da-b17f-51877d56db5a
-NEXT_PUBLIC_AZURE_TENANT_ID=6ae3d026-e965-483e-8309-8f8f3aca71c8
+NEXT_PUBLIC_AZURE_CLIENT_ID=816158a9-dd67-4a38-83b4-6033fa01c2b5
+NEXT_PUBLIC_AZURE_TENANT_ID=3843cf08-a3d1-425c-8d3c-6872729e0a4b
 NEXT_PUBLIC_AZURE_REDIRECT_URI=http://localhost:3000
 NEXT_PUBLIC_AZURE_SCOPE=https://graph.microsoft.com/.default
-NEXT_PUBLIC_APP_NAME=Teams-Chat-Integration
+NEXT_PUBLIC_APP_NAME=Teams-Chat Integration
 ```
 
 ### 3. Install Dependencies

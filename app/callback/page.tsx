@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useMsal } from '@azure/msal-react';
 import { useRouter } from 'next/navigation';
+import { initializeMsal } from '@/lib/msalInstance';
 
 export default function CallbackPage() {
-  const { instance } = useMsal();
   const router = useRouter();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -14,6 +13,9 @@ export default function CallbackPage() {
     const handleRedirect = async () => {
       try {
         setStatus('loading');
+        
+        // Initialize MSAL instance if not already initialized
+        const instance = await initializeMsal();
         
         // Handle the redirect promise
         const response = await instance.handleRedirectPromise();
@@ -50,7 +52,7 @@ export default function CallbackPage() {
     };
 
     handleRedirect();
-  }, [instance, router]);
+  }, [router]);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">

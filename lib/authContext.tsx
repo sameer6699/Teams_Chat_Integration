@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { PublicClientApplication, AccountInfo, AuthenticationResult } from '@azure/msal-browser';
-import { msalConfig, loginRequest, graphConfig } from './msalConfig';
+import { loginRequest, graphConfig } from './msalConfig';
+import { getMsalInstance, initializeMsal } from './msalInstance';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -28,7 +29,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [msalInstance] = useState(() => new PublicClientApplication(msalConfig));
+  const [msalInstance] = useState(() => getMsalInstance());
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<AccountInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,7 +43,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setLoading(false);
         }, 10000); // 10 second timeout
 
-        await msalInstance.initialize();
+        await initializeMsal();
         
         // Handle redirect promise first
         const response = await msalInstance.handleRedirectPromise();

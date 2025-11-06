@@ -1,16 +1,18 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useMsal } from '@azure/msal-react';
 import { useRouter } from 'next/navigation';
+import { initializeMsal } from '@/lib/msalInstance';
 
 export default function LogoutPage() {
-  const { instance } = useMsal();
   const router = useRouter();
 
   useEffect(() => {
     const handleLogout = async () => {
       try {
+        // Initialize MSAL instance if not already initialized
+        const instance = await initializeMsal();
+        
         // Clear local storage/session storage
         localStorage.clear();
         sessionStorage.clear();
@@ -27,7 +29,7 @@ export default function LogoutPage() {
     };
 
     handleLogout();
-  }, [instance, router]);
+  }, [router]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

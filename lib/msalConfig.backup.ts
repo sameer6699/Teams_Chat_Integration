@@ -1,8 +1,8 @@
 import { Configuration, PopupRequest } from '@azure/msal-browser';
 
 // Temporary hardcoded values for testing
-const clientId = '9538fc54-821c-42da-b17f-51877d56db5a';
-const tenantId = '6ae3d026-e965-483e-8309-8f8f3aca71c8';
+const clientId = '816158a9-dd67-4a38-83b4-6033fa01c2b5';
+const tenantId = '3843cf08-a3d1-425c-8d3c-6872729e0a4b';
 const redirectUri = 'https://localhost:3000/callback';
 
 // MSAL configuration
