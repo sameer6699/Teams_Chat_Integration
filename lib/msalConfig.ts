@@ -48,8 +48,30 @@ export const msalConfig: Configuration = {
 
 // Add scopes here for ID token to be used at Microsoft identity platform endpoints.
 export const loginRequest: PopupRequest = {
-  scopes: ['User.Read', 'Chat.Read', 'Chat.ReadWrite', 'TeamsAppInstallation.ReadWriteForUser'],
+  scopes: [
+    'https://graph.microsoft.com/User.Read',
+    'https://graph.microsoft.com/Chat.ReadWrite',
+    'https://graph.microsoft.com/ChatMessage.Send',
+    'https://graph.microsoft.com/TeamsAppInstallation.ReadWriteForUser',
+    'offline_access',
+    'openid',
+    'profile'
+  ],
   prompt: 'select_account',
+};
+
+// Login request with forced consent (use after admin consent is granted)
+export const loginRequestWithConsent: PopupRequest = {
+  scopes: [
+    'https://graph.microsoft.com/User.Read',
+    'https://graph.microsoft.com/Chat.ReadWrite',
+    'https://graph.microsoft.com/ChatMessage.Send',
+    'https://graph.microsoft.com/TeamsAppInstallation.ReadWriteForUser',
+    'offline_access',
+    'openid',
+    'profile'
+  ],
+  prompt: 'consent', // Force consent prompt to ensure fresh consent after admin approval
 };
 
 // Add the endpoints here for Microsoft Graph API services you'd like to use.

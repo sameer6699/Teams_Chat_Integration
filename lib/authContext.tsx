@@ -2,14 +2,18 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { PublicClientApplication, AccountInfo, AuthenticationResult } from '@azure/msal-browser';
-import { loginRequest, graphConfig } from './msalConfig';
+import { loginRequest, loginRequestWithConsent, graphConfig } from './msalConfig';
 import { getMsalInstance, initializeMsal } from './msalInstance';
+import { clearAllAuthData, forceReAuthentication } from './authUtils';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: AccountInfo | null;
   login: () => Promise<void>;
+  loginWithConsent: () => Promise<void>; // Force consent prompt
   logout: () => Promise<void>;
+  clearCache: () => void; // Clear all auth cache
+  reAuthenticate: () => Promise<void>; // Clear cache and force re-authentication
   getAccessToken: () => Promise<string | null>;
   loading: boolean;
 }
@@ -82,6 +86,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const loginWithConsent = async () => {
+    try {
+      setLoading(true);
+      // Force consent prompt - use this after admin consent is granted
+      await msalInstance.loginRedirect(loginRequestWithConsent);
+    } catch (error) {
+      console.error('Login with consent failed:', error);
+      setLoading(false);
+    }
+  };
+
+  const clearCache = () => {
+    try {
+      clearAllAuthData();
+      setUser(null);
+      setIsAuthenticated(false);
+      console.log('Auth cache cleared');
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+    }
+  };
+
+  const reAuthenticate = async () => {
+    try {
+      setLoading(true);
+      await forceReAuthentication();
+    } catch (error) {
+      console.error('Re-authentication failed:', error);
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       setLoading(true);
@@ -118,7 +154,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated,
     user,
     login,
+    loginWithConsent,
     logout,
+    clearCache,
+    reAuthenticate,
     getAccessToken,
     loading,
   };

@@ -20,7 +20,15 @@ export const msalConfig: Configuration = {
 
 // Add scopes here for ID token to be used at Microsoft identity platform endpoints.
 export const loginRequest: PopupRequest = {
-  scopes: ['User.Read', 'Chat.Read', 'Chat.ReadWrite', 'TeamsAppInstallation.ReadWriteForUser'],
+  scopes: [
+    'https://graph.microsoft.com/User.Read',
+    'https://graph.microsoft.com/Chat.ReadWrite',
+    'https://graph.microsoft.com/ChatMessage.Send',
+    'https://graph.microsoft.com/TeamsAppInstallation.ReadWriteForUser',
+    'offline_access',
+    'openid',
+    'profile'
+  ],
   prompt: 'select_account',
 };
 
