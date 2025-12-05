@@ -24,13 +24,16 @@ export default function AdminConsentPage() {
   // Build tenant-specific admin consent URL with full Graph API scopes
   const scopes = [
     'https://graph.microsoft.com/User.Read',
-    'https://graph.microsoft.com/Chat.ReadWrite',
-    'https://graph.microsoft.com/ChatMessage.Send',
-    'https://graph.microsoft.com/TeamsAppInstallation.ReadWriteForUser',
+    // 'https://graph.microsoft.com/Chat.ReadWrite',
+    // 'https://graph.microsoft.com/ChatMessage.Send',
+    // 'https://graph.microsoft.com/TeamsAppInstallation.ReadWriteForUser',
   ].join(' ');
 
-  const adminConsentUrl = `https://login.microsoftonline.com/${tenantId}/v2.0/adminconsent?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}`;
+  // Working URL 
+  //https://login.microsoftonline.com/3843cf08-a3d1-425c-8d3c-6872729e0a4b/oauth2/v2.0/authorize?client_id=816158a9-dd67-4a38-83b4-6033fa01c2b5&response_type=code&redirect_uri=http://localhost:3000/callback&scope=https://graph.microsoft.com/User.Read
 
+  const adminConsentUrl = `https://login.microsoftonline.com/${tenantId}/v2.0/adminconsent?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}`;
+  //const adminConsentUrl =`https://login.microsoftonline.com/3843cf08-a3d1-425c-8d3c-6872729e0a4b/oauth2/v2.0/authorize?client_id=816158a9-dd67-4a38-83b4-6033fa01c2b5&response_type=code&redirect_uri=http://localhost:3000/callback&scope=https://graph.microsoft.com/User.Read`;  
   const handleAdminConsent = () => {
     window.location.href = adminConsentUrl;
   };
@@ -141,10 +144,10 @@ export default function AdminConsentPage() {
           <div className="border-t pt-4">
             <h3 className="font-semibold mb-2">After Granting Consent</h3>
             <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
-              <li>You'll be redirected to Microsoft login page</li>
+              <li>You&apos;ll be redirected to Microsoft login page</li>
               <li>Sign in with your admin account (devapps@meldep.com)</li>
               <li>Review and accept the requested permissions</li>
-              <li>You'll be redirected back to the application</li>
+              <li>You&apos;ll be redirected back to the application</li>
               <li>Go to <a href="/reauthenticate" className="text-blue-600 hover:underline">/reauthenticate</a> page</li>
               <li>Clear cache and re-authenticate with your regular account</li>
             </ol>
@@ -154,11 +157,11 @@ export default function AdminConsentPage() {
             <Info className="h-4 w-4" />
             <AlertTitle>Troubleshooting</AlertTitle>
             <AlertDescription className="space-y-2">
-              <p>If you still see "Need admin approval" after granting consent:</p>
+              <p>If you still see &quot;Need admin approval&quot; after granting consent:</p>
               <ol className="list-decimal list-inside ml-4 space-y-1">
                 <li>Clear browser cache and cookies completely</li>
                 <li>Visit the <a href="/reauthenticate" className="text-blue-600 hover:underline">/reauthenticate</a> page</li>
-                <li>Click "Clear Cache & Re-authenticate"</li>
+                <li>Click &quot;Clear Cache &amp; Re-authenticate&quot;</li>
                 <li>Sign in with a fresh session</li>
               </ol>
             </AlertDescription>

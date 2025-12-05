@@ -47,15 +47,10 @@ export const msalConfig: Configuration = {
 };
 
 // Add scopes here for ID token to be used at Microsoft identity platform endpoints.
+// Using only User.Read scope for basic authentication
 export const loginRequest: PopupRequest = {
   scopes: [
     'https://graph.microsoft.com/User.Read',
-    'https://graph.microsoft.com/Chat.ReadWrite',
-    'https://graph.microsoft.com/ChatMessage.Send',
-    'https://graph.microsoft.com/TeamsAppInstallation.ReadWriteForUser',
-    'offline_access',
-    'openid',
-    'profile'
   ],
   prompt: 'select_account',
 };
@@ -64,12 +59,6 @@ export const loginRequest: PopupRequest = {
 export const loginRequestWithConsent: PopupRequest = {
   scopes: [
     'https://graph.microsoft.com/User.Read',
-    'https://graph.microsoft.com/Chat.ReadWrite',
-    'https://graph.microsoft.com/ChatMessage.Send',
-    'https://graph.microsoft.com/TeamsAppInstallation.ReadWriteForUser',
-    'offline_access',
-    'openid',
-    'profile'
   ],
   prompt: 'consent', // Force consent prompt to ensure fresh consent after admin approval
 };

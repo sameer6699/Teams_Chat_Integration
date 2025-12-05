@@ -97,13 +97,15 @@ export const useGraphApi = () => {
     }
   };
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchUserData();
-      fetchChats();
-      fetchTeams();
-    }
-  }, [isAuthenticated]);
+  // Removed automatic API calls after login
+  // API calls should be triggered manually when needed
+  // useEffect(() => {
+  //   if (isAuthenticated) {
+  //     fetchUserData();
+  //     fetchChats();
+  //     fetchTeams();
+  //   }
+  // }, [isAuthenticated]);
 
   return {
     user,
