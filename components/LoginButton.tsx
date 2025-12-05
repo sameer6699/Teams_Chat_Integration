@@ -2,7 +2,6 @@
 
 import { useAuth } from '@/lib/authContext';
 import { Button } from '@/components/ui/button';
-import { LogIn } from 'lucide-react';
 import Image from 'next/image';
 
 export const LoginButton: React.FC = () => {

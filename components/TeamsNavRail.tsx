@@ -32,15 +32,8 @@ export function TeamsNavRail() {
 
   return (
     <div className="w-16 bg-[#464775] flex flex-col items-center py-2 border-r border-gray-700">
-      {/* Logo/Brand */}
-      <div className="mb-6 mt-2">
-        <div className="w-10 h-10 bg-[#6264a7] rounded flex items-center justify-center text-white font-bold text-sm">
-          TC
-        </div>
-      </div>
-
       {/* Navigation Items */}
-      <div className="flex-1 flex flex-col items-center gap-1 w-full px-1">
+      <div className="flex-1 flex flex-col items-center gap-1 w-full px-1 mt-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeNav === item.id;

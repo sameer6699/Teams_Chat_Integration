@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, Plus, Filter, ChevronDown, Hash, Lock, Bell } from 'lucide-react';
+import { Search, Plus, Filter, ChevronDown, ChevronRight, Hash, Lock, Bell, MoreVertical } from 'lucide-react';
 import { useState } from 'react';
 import { Project, Notification } from '@/lib/types';
 import { useAuth } from '@/lib/authContext';
@@ -20,6 +20,7 @@ export function TeamsChannelList({
 }: TeamsChannelListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'active' | 'archived'>('all');
+  const [isProjectsExpanded, setIsProjectsExpanded] = useState(true); // Default to expanded
   const { user } = useAuth();
 
   const getInitials = (name: string) => {
@@ -148,75 +149,103 @@ export function TeamsChannelList({
       )}
 
       {/* Projects/Channels List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto scrollbar-hide">
         <div className="p-2">
-          <div className="flex items-center justify-between px-2 py-1.5">
-            <div className="flex items-center gap-1">
-              <ChevronDown className="w-4 h-4 text-gray-600" />
-              <span className="text-xs font-semibold text-gray-700">Projects</span>
-            </div>
-            <button className="p-1 hover:bg-gray-200 rounded transition-colors">
-              <Plus className="w-3.5 h-3.5 text-gray-600" />
+          <div className="group/projects-header flex items-center justify-between px-2 py-1.5 rounded-md transition-all duration-200 hover:bg-white hover:border hover:border-gray-300 hover:shadow-sm">
+            <button
+              onClick={() => setIsProjectsExpanded(!isProjectsExpanded)}
+              className="flex items-center gap-1 rounded px-1 py-0.5 transition-colors cursor-pointer"
+              aria-label={isProjectsExpanded ? 'Collapse Projects' : 'Expand Projects'}
+            >
+              {isProjectsExpanded ? (
+                <ChevronDown className="w-4 h-4 text-gray-600 transition-transform duration-200" />
+              ) : (
+                <ChevronRight className="w-4 h-4 text-gray-600 transition-transform duration-200" />
+              )}
+              <span className={`text-xs font-semibold ${isProjectsExpanded ? 'text-indigo-600' : 'text-gray-700'} transition-colors`}>
+                Projects
+              </span>
             </button>
+            <div className="flex items-center gap-1">
+              <button 
+                className="p-1 hover:bg-gray-200 rounded transition-colors opacity-0 group-hover/projects-header:opacity-100"
+                aria-label="Add new project"
+              >
+                <Plus className="w-3.5 h-3.5 text-gray-600" />
+              </button>
+              <button 
+                className="p-1 hover:bg-gray-200 rounded transition-colors opacity-0 group-hover/projects-header:opacity-100"
+                aria-label="More options"
+              >
+                <MoreVertical className="w-3.5 h-3.5 text-gray-600" />
+              </button>
+            </div>
           </div>
 
-          <div className="space-y-0.5 mt-1">
-            {filteredProjects.map((project) => {
-              const isSelected = project.id === selectedProject;
-              return (
-                <button
-                  key={project.id}
-                  onClick={() => onProjectSelect(project.id)}
-                  className={`
-                    w-full flex items-center gap-3 p-2 rounded-lg transition-all
-                    ${isSelected 
-                      ? 'bg-white shadow-sm border border-indigo-200' 
-                      : 'hover:bg-white/50'
-                    }
-                  `}
-                >
-                  {/* Avatar */}
-                  <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${getAvatarColor(project.id)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-sm`}>
-                    {getInitials(project.name)}
-                  </div>
+          {/* Collapsible Projects List */}
+          <div 
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+              isProjectsExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+            }`}
+          >
+            <div className="space-y-0.5 mt-1">
+              {filteredProjects.map((project) => {
+                const isSelected = project.id === selectedProject;
+                return (
+                  <button
+                    key={project.id}
+                    onClick={() => onProjectSelect(project.id)}
+                    className={`
+                      w-full flex items-center gap-3 p-2 rounded-lg transition-all
+                      ${isSelected 
+                        ? 'bg-white shadow-sm border border-indigo-200' 
+                        : 'hover:bg-white/50'
+                      }
+                    `}
+                  >
+                    {/* Avatar */}
+                    <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${getAvatarColor(project.id)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-sm`}>
+                      {getInitials(project.name)}
+                    </div>
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0 text-left">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm font-semibold truncate ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
-                        {project.name}
-                      </span>
-                      {project.unreadCount > 0 && (
-                        <span className="bg-indigo-600 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 flex-shrink-0">
-                          {project.unreadCount}
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm font-semibold truncate ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
+                          {project.name}
                         </span>
-                      )}
+                        {project.unreadCount > 0 && (
+                          <span className="bg-indigo-600 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 flex-shrink-0">
+                            {project.unreadCount}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 truncate mt-0.5">
+                        <span className="font-medium">Status:</span> {project.status}
+                      </div>
+                      <div className="text-xs text-gray-400 truncate">
+                        {project.client && <span>Client: {project.client}</span>}
+                        {project.owner && <span>Owner: {project.owner}</span>}
+                        {project.team && <span>Team: {project.team}</span>}
+                      </div>
+                      <div className="text-xs text-gray-400 truncate mt-0.5">
+                        {project.detail}
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500 truncate mt-0.5">
-                      <span className="font-medium">Status:</span> {project.status}
-                    </div>
-                    <div className="text-xs text-gray-400 truncate">
-                      {project.client && <span>Client: {project.client}</span>}
-                      {project.owner && <span>Owner: {project.owner}</span>}
-                      {project.team && <span>Team: {project.team}</span>}
-                    </div>
-                    <div className="text-xs text-gray-400 truncate mt-0.5">
-                      {project.detail}
-                    </div>
-                  </div>
 
-                  {/* Tag Badge */}
-                  <div className={`
-                    px-2 py-0.5 rounded text-xs font-medium flex-shrink-0
-                    ${project.tag === 'Active' ? 'bg-green-100 text-green-700' : ''}
-                    ${project.tag === 'Review' ? 'bg-yellow-100 text-yellow-700' : ''}
-                    ${project.tag === 'Planning' ? 'bg-blue-100 text-blue-700' : ''}
-                  `}>
-                    {project.tag}
-                  </div>
-                </button>
-              );
-            })}
+                    {/* Tag Badge */}
+                    <div className={`
+                      px-2 py-0.5 rounded text-xs font-medium flex-shrink-0
+                      ${project.tag === 'Active' ? 'bg-green-100 text-green-700' : ''}
+                      ${project.tag === 'Review' ? 'bg-yellow-100 text-yellow-700' : ''}
+                      ${project.tag === 'Planning' ? 'bg-blue-100 text-blue-700' : ''}
+                    `}>
+                      {project.tag}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
