@@ -1,35 +1,32 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { initializeMsal } from '@/lib/msalInstance';
+import { clearAllAuthData } from '@/lib/authUtils';
 
 export default function LogoutPage() {
-  const router = useRouter();
-
   useEffect(() => {
     const handleLogout = async () => {
       try {
-        // Initialize MSAL instance if not already initialized
-        const instance = await initializeMsal();
+        // Clear all MSAL cache and authentication data
+        clearAllAuthData();
         
-        // Clear local storage/session storage
-        localStorage.clear();
-        sessionStorage.clear();
+        // Small delay to ensure state is cleared before redirect
+        await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Sign out from MSAL
-        await instance.logoutRedirect({
-          postLogoutRedirectUri: 'http://localhost:3000'
-        });
+        // Redirect to home page (which will show login screen via AuthGuard)
+        // Use replace to avoid adding to browser history
+        const redirectUri = process.env.NEXT_PUBLIC_AZURE_REDIRECT_URI || 'http://localhost:3000/';
+        window.location.replace(redirectUri);
       } catch (error) {
         console.error('Logout error:', error);
         // Redirect to home page even if logout fails
-        router.push('/');
+        const redirectUri = process.env.NEXT_PUBLIC_AZURE_REDIRECT_URI || 'http://localhost:3000/';
+        window.location.replace(redirectUri);
       }
     };
 
     handleLogout();
-  }, [router]);
+  }, []);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

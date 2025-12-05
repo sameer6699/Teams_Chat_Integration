@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/lib/authContext';
 import { Button } from '@/components/ui/button';
-import { LogIn, Loader2 } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import Image from 'next/image';
 
 export const LoginButton: React.FC = () => {
@@ -15,7 +15,11 @@ export const LoginButton: React.FC = () => {
       className="flex items-center gap-2"
     >
       {loading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <div className="flex items-center gap-1">
+          <div className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+          <div className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+          <div className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+        </div>
       ) : (
         <Image 
           width={24} 

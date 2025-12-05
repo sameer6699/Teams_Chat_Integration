@@ -2,7 +2,6 @@
 
 import { useAuth } from '@/lib/authContext';
 import { WelcomeCard } from '@/components/WelcomeCard';
-import { Loader2 } from 'lucide-react';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -23,11 +22,16 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
               alt="microsoft-teams-2019"
               className="w-24 h-24"
             />
-            <Loader2 className="absolute -bottom-2 -right-2 h-8 w-8 animate-spin text-blue-600" />
           </div>
           <div className="text-center">
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Initializing Teams Chat Integration</h2>
-            <p className="text-gray-600">Setting up your workspace...</p>
+            <p className="text-gray-600 mb-4">Setting up your workspace...</p>
+            {/* Loader after the text */}
+            <div className="flex justify-center items-center gap-2 mt-4">
+              <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
           </div>
         </div>
       </div>

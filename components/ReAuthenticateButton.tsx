@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/lib/authContext';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Loader2, AlertCircle } from 'lucide-react';
+import { RefreshCw, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 
 /**
@@ -37,7 +37,11 @@ export const ReAuthenticateButton: React.FC = () => {
       >
         {loading ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
             Re-authenticating...
           </>
         ) : (

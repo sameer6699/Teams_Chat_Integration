@@ -3,7 +3,7 @@
 import { useAuth } from '@/lib/authContext';
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/UserAvatar';
-import { LogOut, Loader2 } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,7 +45,11 @@ export const UserProfile: React.FC = () => {
           className="flex items-center gap-2"
         >
           {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
           ) : (
             <LogOut className="h-4 w-4" />
           )}

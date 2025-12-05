@@ -32,7 +32,7 @@ export function UserMenuDropdown() {
     try {
       setIsDropdownOpen(false);
       await logout();
-      router.push('/');
+      // Note: logout() now handles the redirect internally, so router.push is not needed
     } catch (error) {
       console.error('Logout error:', error);
     }

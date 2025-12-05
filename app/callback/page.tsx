@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { initializeMsal } from '@/lib/msalInstance';
-import { CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 
 export default function CallbackPage() {
   const router = useRouter();
@@ -131,10 +131,9 @@ export default function CallbackPage() {
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg border border-gray-200 p-8 text-center">
         {status === 'loading' && (
           <div className="space-y-4">
-            <Loader2 className="h-12 w-12 text-blue-600 mx-auto animate-spin" />
             <h1 className="text-2xl font-semibold text-gray-900">Authenticating...</h1>
             <p className="text-gray-600">Please wait while we complete your sign-in.</p>
-            <div className="flex justify-center items-center gap-1 pt-2">
+            <div className="flex justify-center items-center gap-2 pt-2">
               <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
               <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
               <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
@@ -160,8 +159,7 @@ export default function CallbackPage() {
                 </div>
               )}
             </div>
-            <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
+            <p className="text-sm text-gray-500">
               Redirecting to dashboard...
             </p>
           </div>
@@ -187,8 +185,7 @@ export default function CallbackPage() {
                 <li>Visit <a href="/admin-consent" className="text-blue-600 hover:underline">/admin-consent</a> if you need to grant permissions</li>
               </ul>
             </div>
-            <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
+            <p className="text-sm text-gray-500">
               Redirecting to home page...
             </p>
           </div>
