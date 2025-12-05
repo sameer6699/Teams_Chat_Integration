@@ -2,9 +2,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoginButton } from '@/components/LoginButton';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info, Shield } from 'lucide-react';
-import Link from 'next/link';
 
 export const WelcomeCard: React.FC = () => {
   return (
@@ -30,27 +27,6 @@ export const WelcomeCard: React.FC = () => {
         <CardContent className="space-y-4">
           <div className="flex justify-center">
             <LoginButton />
-          </div>
-
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription className="text-sm">
-              <strong>First time here?</strong> If you see "Need admin approval" error, 
-              visit the <Link href="/admin-consent" className="text-blue-600 hover:underline font-semibold">Admin Consent</Link> page first.
-            </AlertDescription>
-          </Alert>
-
-          <div className="text-center space-y-2 pt-2">
-            <div className="flex justify-center gap-4 text-xs text-gray-500">
-              <Link href="/admin-consent" className="flex items-center gap-1 hover:text-blue-600">
-                <Shield className="h-3 w-3" />
-                Admin Consent
-              </Link>
-              <span>•</span>
-              <Link href="/reauthenticate" className="hover:text-blue-600">
-                Re-authenticate
-              </Link>
-            </div>
           </div>
         </CardContent>
       </Card>
