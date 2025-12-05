@@ -3,6 +3,7 @@
 import { useAuth } from '@/lib/authContext';
 import { Button } from '@/components/ui/button';
 import { LogIn, Loader2 } from 'lucide-react';
+import Image from 'next/image';
 
 export const LoginButton: React.FC = () => {
   const { login, loading } = useAuth();
@@ -16,15 +17,15 @@ export const LoginButton: React.FC = () => {
       {loading ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
-        <img 
-          width="24" 
-          height="24" 
+        <Image 
+          width={24} 
+          height={24} 
           src="https://img.icons8.com/fluency/96/microsoft-teams-2019.png" 
           alt="microsoft-teams-2019"
           className="h-6 w-6"
         />
       )}
-      Sign in with Microsoft
+      Sign in with Microsoft Teams 
     </Button>
   );
 };
