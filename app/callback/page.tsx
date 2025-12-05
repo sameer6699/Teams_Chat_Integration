@@ -143,21 +143,8 @@ export default function CallbackPage() {
         
         {status === 'success' && (
           <div className="space-y-4">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-20 h-20 bg-green-100 rounded-full animate-ping opacity-75"></div>
-              </div>
-              <CheckCircle2 className="h-16 w-16 text-green-600 mx-auto relative" />
-            </div>
-            <h1 className="text-2xl font-semibold text-gray-900">Success!</h1>
-            <div className="space-y-2">
-              <p className="text-gray-600">Welcome back!</p>
-              {authDetails.userName && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                  <p className="text-sm font-medium text-green-900">{authDetails.userName}</p>
-                  <p className="text-xs text-green-700">{authDetails.userEmail}</p>
-                </div>
-              )}
+            <div className="flex justify-center">
+              <CheckCircle2 className="h-16 w-16 text-green-600" />
             </div>
             <p className="text-sm text-gray-500">
               Redirecting to dashboard...
