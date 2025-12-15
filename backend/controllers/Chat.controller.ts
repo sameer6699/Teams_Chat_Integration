@@ -5,32 +5,29 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { ChatService } from '../services/Chat.service';
-import { AuthService } from '../services/Auth.service';
+import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
 export class ChatController {
   private chatService: ChatService;
-  private authService: AuthService;
 
   constructor() {
     this.chatService = new ChatService();
-    this.authService = new AuthService();
   }
 
   /**
    * Get all chats for current user
    * GET /api/chats
    */
-  async getChats(request: NextRequest): Promise<NextResponse> {
+  async getChats(request: AuthenticatedRequest): Promise<NextResponse> {
     try {
-      // Get access token
-      const accessToken = await this.authService.getAccessToken();
+      // Get access token from authenticated request (set by middleware)
+      const accessToken = request.accessToken;
       if (!accessToken) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return NextResponse.json({ error: 'Unauthorized', message: 'No access token provided' }, { status: 401 });
       }
 
-      // Get current user ID
-      const account = this.authService.getCurrentAccount();
-      const userId = account?.homeAccountId;
+      // Get user ID from authenticated request
+      const userId = request.userId;
 
       // Get chats
       const chats = await this.chatService.getAllChats(accessToken, userId);
@@ -56,17 +53,16 @@ export class ChatController {
    * Get chat by ID
    * GET /api/chats/[id]
    */
-  async getChatById(request: NextRequest, chatId: string): Promise<NextResponse> {
+  async getChatById(request: AuthenticatedRequest, chatId: string): Promise<NextResponse> {
     try {
-      // Get access token
-      const accessToken = await this.authService.getAccessToken();
+      // Get access token from authenticated request (set by middleware)
+      const accessToken = request.accessToken;
       if (!accessToken) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return NextResponse.json({ error: 'Unauthorized', message: 'No access token provided' }, { status: 401 });
       }
 
-      // Get current user ID
-      const account = this.authService.getCurrentAccount();
-      const userId = account?.homeAccountId;
+      // Get user ID from authenticated request
+      const userId = request.userId;
 
       // Get chat
       const chat = await this.chatService.getChatById(accessToken, chatId, userId);
@@ -92,17 +88,16 @@ export class ChatController {
    * Get messages for a chat
    * GET /api/chats/[id]/messages
    */
-  async getChatMessages(request: NextRequest, chatId: string): Promise<NextResponse> {
+  async getChatMessages(request: AuthenticatedRequest, chatId: string): Promise<NextResponse> {
     try {
-      // Get access token
-      const accessToken = await this.authService.getAccessToken();
+      // Get access token from authenticated request (set by middleware)
+      const accessToken = request.accessToken;
       if (!accessToken) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return NextResponse.json({ error: 'Unauthorized', message: 'No access token provided' }, { status: 401 });
       }
 
-      // Get current user ID
-      const account = this.authService.getCurrentAccount();
-      const userId = account?.homeAccountId;
+      // Get user ID from authenticated request
+      const userId = request.userId;
 
       // Get messages
       const messages = await this.chatService.getChatMessages(accessToken, chatId, userId);
@@ -128,17 +123,16 @@ export class ChatController {
    * Send a message to a chat
    * POST /api/chats/[id]/messages
    */
-  async sendMessage(request: NextRequest, chatId: string): Promise<NextResponse> {
+  async sendMessage(request: AuthenticatedRequest, chatId: string): Promise<NextResponse> {
     try {
-      // Get access token
-      const accessToken = await this.authService.getAccessToken();
+      // Get access token from authenticated request (set by middleware)
+      const accessToken = request.accessToken;
       if (!accessToken) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return NextResponse.json({ error: 'Unauthorized', message: 'No access token provided' }, { status: 401 });
       }
 
-      // Get current user ID
-      const account = this.authService.getCurrentAccount();
-      const userId = account?.homeAccountId;
+      // Get user ID from authenticated request
+      const userId = request.userId;
 
       // Parse request body
       const body = await request.json();
@@ -175,12 +169,12 @@ export class ChatController {
    * Mark chat as read
    * POST /api/chats/[id]/read
    */
-  async markChatAsRead(request: NextRequest, chatId: string): Promise<NextResponse> {
+  async markChatAsRead(request: AuthenticatedRequest, chatId: string): Promise<NextResponse> {
     try {
-      // Get access token
-      const accessToken = await this.authService.getAccessToken();
+      // Get access token from authenticated request (set by middleware)
+      const accessToken = request.accessToken;
       if (!accessToken) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return NextResponse.json({ error: 'Unauthorized', message: 'No access token provided' }, { status: 401 });
       }
 
       // Mark as read

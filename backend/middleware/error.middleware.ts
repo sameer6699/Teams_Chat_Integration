@@ -3,7 +3,7 @@
  * Centralized error handling for API routes
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export interface ApiError extends Error {
   statusCode?: number;
@@ -79,13 +79,42 @@ export function handleError(error: unknown): NextResponse {
 
 /**
  * Wrapper for async route handlers with error handling
+ * Supports both single-argument and dynamic route handlers
  */
+
+// Overload for single-argument handlers (non-dynamic routes)
 export function withErrorHandling(
-  handler: (request: Request) => Promise<NextResponse>
+  handler: (request: NextRequest) => Promise<NextResponse>
+): (request: NextRequest) => Promise<NextResponse>;
+
+// Overload for two-argument handlers (dynamic routes with params)
+export function withErrorHandling<T extends { [key: string]: string }>(
+  handler: (
+    request: NextRequest,
+    context: { params: Promise<T> }
+  ) => Promise<NextResponse>
+): (
+  request: NextRequest,
+  context: { params: Promise<T> }
+) => Promise<NextResponse>;
+
+// Implementation
+export function withErrorHandling<T extends { [key: string]: string }>(
+  handler: (
+    request: NextRequest,
+    context?: { params: Promise<T> }
+  ) => Promise<NextResponse>
 ) {
-  return async (request: Request): Promise<NextResponse> => {
+  return async (
+    request: NextRequest,
+    context?: { params: Promise<T> }
+  ): Promise<NextResponse> => {
     try {
-      return await handler(request);
+      if (context) {
+        return await handler(request, context);
+      } else {
+        return await handler(request);
+      }
     } catch (error) {
       return handleError(error);
     }

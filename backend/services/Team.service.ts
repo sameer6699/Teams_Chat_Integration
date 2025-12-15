@@ -25,13 +25,25 @@ export class TeamService implements ITeamService {
     try {
       const teams = await this.graphApiService.getTeams(accessToken);
       
+      // Handle empty teams array
+      if (!teams || teams.length === 0) {
+        console.log('No teams found for user');
+        return [];
+      }
+      
       // Sort by creation date (newest first)
       return teams.sort((a, b) => {
-        return new Date(b.createdDateTime).getTime() - new Date(a.createdDateTime).getTime();
+        const dateA = new Date(a.createdDateTime).getTime();
+        const dateB = new Date(b.createdDateTime).getTime();
+        return dateB - dateA;
       });
     } catch (error) {
-      console.error('Failed to get teams:', error);
-      throw new Error('Failed to fetch teams');
+      console.error('Failed to get teams - Full error details:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error instanceof Error ? error : new Error('Failed to fetch teams');
     }
   }
 

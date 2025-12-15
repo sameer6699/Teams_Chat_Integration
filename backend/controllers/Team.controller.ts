@@ -5,27 +5,25 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { TeamService } from '../services/Team.service';
-import { AuthService } from '../services/Auth.service';
+import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
 export class TeamController {
   private teamService: TeamService;
-  private authService: AuthService;
 
   constructor() {
     this.teamService = new TeamService();
-    this.authService = new AuthService();
   }
 
   /**
    * Get all teams for current user
    * GET /api/teams
    */
-  async getTeams(request: NextRequest): Promise<NextResponse> {
+  async getTeams(request: AuthenticatedRequest): Promise<NextResponse> {
     try {
-      // Get access token
-      const accessToken = await this.authService.getAccessToken();
+      // Get access token from authenticated request (set by middleware)
+      const accessToken = request.accessToken;
       if (!accessToken) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return NextResponse.json({ error: 'Unauthorized', message: 'No access token provided' }, { status: 401 });
       }
 
       // Get teams
@@ -52,12 +50,12 @@ export class TeamController {
    * Get team by ID
    * GET /api/teams/[id]
    */
-  async getTeamById(request: NextRequest, teamId: string): Promise<NextResponse> {
+  async getTeamById(request: AuthenticatedRequest, teamId: string): Promise<NextResponse> {
     try {
-      // Get access token
-      const accessToken = await this.authService.getAccessToken();
+      // Get access token from authenticated request (set by middleware)
+      const accessToken = request.accessToken;
       if (!accessToken) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return NextResponse.json({ error: 'Unauthorized', message: 'No access token provided' }, { status: 401 });
       }
 
       // Get team

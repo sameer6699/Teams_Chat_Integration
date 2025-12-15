@@ -100,10 +100,18 @@ export class GraphApiService implements IGraphApiService {
     try {
       const client = new GraphApiClient(accessToken);
       const response = await client.getTeams();
+      
+      // Handle empty response or missing value property
+      if (!response || !response.value) {
+        console.warn('Teams API returned empty or invalid response:', response);
+        return [];
+      }
+      
       return response.value.map((team: any) => TeamModel.fromGraphApi(team));
     } catch (error) {
-      console.error('Failed to get teams:', error);
-      throw new Error('Failed to fetch teams');
+      console.error('Failed to get teams - Full error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to fetch teams: ${errorMessage}`);
     }
   }
 }

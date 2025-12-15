@@ -47,7 +47,28 @@ export class GraphApiClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Graph API request failed: ${response.status} ${response.statusText}`);
+      let errorMessage = `Graph API request failed: ${response.status} ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = `${errorMessage} - ${errorData.error.message || errorData.error.code || JSON.stringify(errorData.error)}`;
+        } else {
+          errorMessage = `${errorMessage} - ${JSON.stringify(errorData)}`;
+        }
+      } catch (e) {
+        // If we can't parse the error response, use the status text
+        const errorText = await response.text().catch(() => '');
+        if (errorText) {
+          errorMessage = `${errorMessage} - ${errorText}`;
+        }
+      }
+      console.error('Graph API Error Details:', {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        errorMessage,
+      });
+      throw new Error(errorMessage);
     }
 
     return response.json();

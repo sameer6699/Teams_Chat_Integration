@@ -84,17 +84,28 @@ export class MessageModel implements IMessage {
    * Transform Graph API message to Message model
    */
   static fromGraphApi(graphMessage: any, chatId: string, currentUserId?: string): MessageModel {
-    const sender = graphMessage.from?.user;
-    const senderId = sender?.id;
-    const isSender = currentUserId ? senderId === currentUserId : false;
+    // Extract sender information from various possible Graph API structures
+    const sender = graphMessage.from?.user || graphMessage.from;
+    const senderId = sender?.id || sender?.userId;
+    const isSender = currentUserId ? (senderId === currentUserId || sender?.id === currentUserId) : false;
+
+    // Build sender object with all available information
+    const senderInfo = sender ? {
+      id: sender.id || sender.userId || '',
+      displayName: sender.displayName || sender.name || sender.givenName || 'Unknown',
+      name: sender.displayName || sender.name || sender.givenName || 'Unknown',
+      email: sender.userPrincipalName || sender.mail || sender.email || '',
+      userPrincipalName: sender.userPrincipalName || sender.mail || sender.email || '',
+    } : undefined;
 
     return new MessageModel({
       id: graphMessage.id,
       chatId: chatId,
-      text: graphMessage.body?.content || '',
-      timestamp: graphMessage.createdDateTime,
+      text: graphMessage.body?.content || graphMessage.body?.text || '',
+      timestamp: graphMessage.createdDateTime || graphMessage.lastModifiedDateTime || new Date().toISOString(),
       isSender: isSender,
       senderId: senderId,
+      sender: senderInfo,
       contentType: graphMessage.body?.contentType || 'text',
       attachments: graphMessage.attachments?.map((att: any) => ({
         id: att.id,
