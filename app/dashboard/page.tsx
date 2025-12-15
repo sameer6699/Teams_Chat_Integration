@@ -64,17 +64,25 @@ export default function DashboardPage() {
 
   // Fetch messages when a chat is selected
   useEffect(() => {
+    // Don't set up polling if chat is not selected or user is not authenticated
+    if (!selectedChatId || !isAuthenticated) {
+      setMessages([]);
+      setLoadingMessages(false);
+      return;
+    }
+
+    let isMounted = true;
+    let intervalId: NodeJS.Timeout | null = null;
+
     const fetchMessages = async () => {
-      if (!selectedChatId || !isAuthenticated) {
-        setMessages([]);
+      if (!isMounted || !selectedChatId || !isAuthenticated) {
         return;
       }
 
       try {
         setLoadingMessages(true);
         const accessToken = await getAccessToken();
-        if (!accessToken) {
-          setMessages([]);
+        if (!accessToken || !isMounted) {
           return;
         }
 
@@ -87,8 +95,12 @@ export default function DashboardPage() {
           credentials: 'include',
         });
 
+        if (!isMounted) return;
+
         if (response.ok) {
           const data = await response.json();
+          if (!isMounted) return;
+
           if (data.success && data.data) {
             // Transform API messages to component Message format
             const transformedMessages: Message[] = data.data.map((msg: any) => {
@@ -116,24 +128,45 @@ export default function DashboardPage() {
                 sender: senderInfo,
               };
             });
-            setMessages(transformedMessages);
+            
+            if (isMounted) {
+              setMessages(transformedMessages);
+            }
           }
         } else {
-          setMessages([]);
+          if (isMounted) {
+            setMessages([]);
+          }
         }
       } catch (error) {
+        if (!isMounted) return;
         console.error('Error fetching messages:', error);
         setMessages([]);
       } finally {
-        setLoadingMessages(false);
+        if (isMounted) {
+          setLoadingMessages(false);
+        }
       }
     };
 
+    // Initial fetch
     fetchMessages();
 
-    // Refresh messages every 10 seconds when chat is selected
-    const interval = setInterval(fetchMessages, 10000);
-    return () => clearInterval(interval);
+    // Set up polling interval: 20 seconds to prevent excessive API calls
+    intervalId = setInterval(() => {
+      if (selectedChatId && isAuthenticated && isMounted) {
+        fetchMessages();
+      }
+    }, 20000); // 20 seconds interval
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
   }, [selectedChatId, isAuthenticated, getAccessToken]);
 
   const getChatDisplayName = (chat: Chat | null): string => {

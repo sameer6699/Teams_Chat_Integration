@@ -79,7 +79,30 @@ export class GraphApiClient {
   }
 
   async getChats(): Promise<{ value: GraphChat[] }> {
-    return this.makeRequest<{ value: GraphChat[] }>(graphConfig.graphChatsEndpoint);
+    // Include members for richer chat data
+    // Note: $orderby might not be supported for chats endpoint, so we'll sort client-side
+    const endpoint = `${graphConfig.graphChatsEndpoint}?$expand=members&$top=50`;
+    console.log('GraphApiClient: Fetching chats from:', endpoint);
+    try {
+      const response = await this.makeRequest<{ value: GraphChat[] }>(endpoint);
+      console.log(`GraphApiClient: Successfully fetched ${response.value?.length || 0} chats`);
+      return response;
+    } catch (error) {
+      console.error('GraphApiClient: Error fetching chats:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get chats with delta query for efficient updates
+   * Use this for real-time updates to get only changed chats
+   */
+  async getChatsDelta(deltaToken?: string): Promise<{ value: GraphChat[]; '@odata.deltaLink'?: string }> {
+    let endpoint = `${graphConfig.graphChatsEndpoint}/delta?$expand=members&$top=50`;
+    if (deltaToken) {
+      endpoint = deltaToken;
+    }
+    return this.makeRequest<{ value: GraphChat[]; '@odata.deltaLink'?: string }>(endpoint);
   }
 
   async getTeams(): Promise<{ value: GraphTeam[] }> {

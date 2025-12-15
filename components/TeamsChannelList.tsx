@@ -47,9 +47,17 @@ export function TeamsChannelList({
 
   // Fetch chats and teams from Microsoft Graph API
   useEffect(() => {
+    // Don't set up polling if not authenticated
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+    let intervalId: NodeJS.Timeout | null = null;
+
     const fetchData = async () => {
-      if (!isAuthenticated) {
-        setLoading(false);
+      if (!isAuthenticated || !isMounted) {
         return;
       }
 
@@ -58,8 +66,8 @@ export function TeamsChannelList({
         setError(null);
 
         const accessToken = await getAccessToken();
-        if (!accessToken) {
-          throw new Error('No access token available');
+        if (!accessToken || !isMounted) {
+          return;
         }
 
         // Fetch chats
@@ -72,29 +80,56 @@ export function TeamsChannelList({
           credentials: 'include',
         });
 
+        if (!isMounted) return;
+
         if (!chatsResponse.ok) {
           const errorData = await chatsResponse.json().catch(() => ({}));
-          throw new Error(errorData.message || errorData.error || `Failed to fetch chats: ${chatsResponse.status}`);
+          const errorMessage = errorData.message || errorData.error || `Failed to fetch chats: ${chatsResponse.status}`;
+          console.error('Chat fetch error details:', {
+            status: chatsResponse.status,
+            statusText: chatsResponse.statusText,
+            errorData,
+            errorMessage,
+          });
+          throw new Error(errorMessage);
         }
 
         const chatsData = await chatsResponse.json();
+        if (!isMounted) return;
+
         if (chatsData.success && chatsData.data) {
           setChats(chatsData.data);
         }
 
       } catch (err) {
+        if (!isMounted) return;
         console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load data');
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
+    // Initial fetch
     fetchData();
 
-    // Refresh data every 30 seconds
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
+    // Set up polling interval: 30 seconds to prevent excessive API calls
+    intervalId = setInterval(() => {
+      if (isAuthenticated && isMounted) {
+        fetchData();
+      }
+    }, 30000); // 30 seconds interval
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
   }, [isAuthenticated, getAccessToken]);
 
   const getInitials = (name: string) => {

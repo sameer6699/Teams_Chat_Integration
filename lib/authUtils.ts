@@ -242,16 +242,42 @@ export const forceReAuthentication = async (): Promise<void> => {
 
     const msalInstance = getMsalInstance();
     
-    // Force login with consent prompt
+    // Force login with consent prompt - All granted permissions
     await msalInstance.loginRedirect({
       scopes: [
-        'https://graph.microsoft.com/User.Read',
-        'https://graph.microsoft.com/Chat.ReadWrite',
-        'https://graph.microsoft.com/ChatMessage.Send',
-        'https://graph.microsoft.com/TeamsAppInstallation.ReadWriteForUser',
-        'offline_access',
+        // Standard OAuth permissions
         'openid',
-        'profile'
+        'email',
+        'offline_access',
+        'profile',
+        
+        // User permissions
+        'https://graph.microsoft.com/User.Read',
+        'https://graph.microsoft.com/User.ReadBasic.All',
+        'https://graph.microsoft.com/User.Read.All',
+        
+        // Chat permissions
+        'https://graph.microsoft.com/Chat.Read',
+        'https://graph.microsoft.com/Chat.ReadBasic',
+        'https://graph.microsoft.com/Chat.ReadWrite',
+        'https://graph.microsoft.com/Chat.ReadWrite.All',
+        'https://graph.microsoft.com/Chat.Create',
+        
+        // Chat message permissions
+        'https://graph.microsoft.com/ChatMessage.Read',
+        'https://graph.microsoft.com/ChatMessage.Send',
+        
+        // Channel permissions
+        'https://graph.microsoft.com/Channel.ReadBasic.All',
+        'https://graph.microsoft.com/ChannelMessage.Read.All',
+        'https://graph.microsoft.com/ChannelMessage.Send',
+        
+        // Team permissions
+        'https://graph.microsoft.com/Team.ReadBasic.All',
+        
+        // Presence permissions
+        'https://graph.microsoft.com/Presence.Read',
+        'https://graph.microsoft.com/Presence.Read.All',
       ],
       prompt: 'consent', // Force consent prompt
     });

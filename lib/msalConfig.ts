@@ -46,20 +46,56 @@ export const msalConfig: Configuration = {
   },
 };
 
+/**
+ * All granted Microsoft Graph API permissions
+ * These permissions have been granted for MeldEP organization
+ */
+export const graphApiScopes = [
+  // Standard OAuth permissions
+  'openid',
+  'email',
+  'offline_access',
+  'profile',
+  
+  // User permissions
+  'https://graph.microsoft.com/User.Read',
+  'https://graph.microsoft.com/User.ReadBasic.All',
+  'https://graph.microsoft.com/User.Read.All',
+  
+  // Chat permissions
+  'https://graph.microsoft.com/Chat.Read',
+  'https://graph.microsoft.com/Chat.ReadBasic',
+  'https://graph.microsoft.com/Chat.ReadWrite',
+  'https://graph.microsoft.com/Chat.ReadWrite.All',
+  'https://graph.microsoft.com/Chat.Create',
+  
+  // Chat message permissions
+  'https://graph.microsoft.com/ChatMessage.Read',
+  'https://graph.microsoft.com/ChatMessage.Send',
+  
+  // Channel permissions
+  'https://graph.microsoft.com/Channel.ReadBasic.All',
+  'https://graph.microsoft.com/ChannelMessage.Read.All',
+  'https://graph.microsoft.com/ChannelMessage.Send',
+  
+  // Team permissions
+  'https://graph.microsoft.com/Team.ReadBasic.All',
+  
+  // Presence permissions
+  'https://graph.microsoft.com/Presence.Read',
+  'https://graph.microsoft.com/Presence.Read.All',
+];
+
 // Add scopes here for ID token to be used at Microsoft identity platform endpoints.
-// Using only User.Read scope for basic authentication
+// All granted permissions are included for full functionality
 export const loginRequest: PopupRequest = {
-  scopes: [
-    'https://graph.microsoft.com/User.Read',
-  ],
+  scopes: graphApiScopes,
   prompt: 'select_account',
 };
 
 // Login request with forced consent (use after admin consent is granted)
 export const loginRequestWithConsent: PopupRequest = {
-  scopes: [
-    'https://graph.microsoft.com/User.Read',
-  ],
+  scopes: graphApiScopes,
   prompt: 'consent', // Force consent prompt to ensure fresh consent after admin approval
 };
 

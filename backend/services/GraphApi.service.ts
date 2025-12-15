@@ -37,12 +37,36 @@ export class GraphApiService implements IGraphApiService {
    */
   async getChats(accessToken: string): Promise<ChatModel[]> {
     try {
+      console.log('GraphApiService: Getting chats...');
       const client = new GraphApiClient(accessToken);
       const response = await client.getChats();
-      return response.value.map((chat: any) => ChatModel.fromGraphApi(chat));
+      console.log(`GraphApiService: Received ${response.value?.length || 0} chats from Graph API`);
+      
+      if (!response.value) {
+        console.warn('GraphApiService: No chats in response, returning empty array');
+        return [];
+      }
+      
+      const chats = response.value.map((chat: any) => {
+        try {
+          return ChatModel.fromGraphApi(chat);
+        } catch (error) {
+          console.error(`Failed to transform chat ${chat.id}:`, error);
+          // Return a basic chat model if transformation fails
+          return ChatModel.fromGraphApi(chat);
+        }
+      });
+      
+      console.log(`GraphApiService: Successfully transformed ${chats.length} chats`);
+      return chats;
     } catch (error) {
-      console.error('Failed to get chats:', error);
-      throw new Error('Failed to fetch chats');
+      console.error('GraphApiService: Failed to get chats - Full error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('GraphApiService: Error details:', {
+        message: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw new Error(`Failed to fetch chats from Graph API: ${errorMessage}`);
     }
   }
 

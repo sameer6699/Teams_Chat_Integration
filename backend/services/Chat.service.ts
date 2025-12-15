@@ -27,12 +27,16 @@ export class ChatService implements IChatService {
    */
   async getAllChats(accessToken: string, userId?: string): Promise<ChatModel[]> {
     try {
+      console.log('Fetching chats with access token:', accessToken ? 'Token present' : 'No token');
       const chats = await this.graphApiService.getChats(accessToken);
+      console.log(`Successfully fetched ${chats.length} chats`);
       
       // Enrich chats with last message and unread count
-      const enrichedChats = await Promise.all(
+      // Use Promise.allSettled to continue even if some enrichments fail
+      const enrichmentResults = await Promise.allSettled(
         chats.map(async (chat) => {
           try {
+            // Only fetch last message for preview, limit to 1 message
             const messages = await this.graphApiService.getChatMessages(
               accessToken,
               chat.id,
@@ -41,31 +45,45 @@ export class ChatService implements IChatService {
             
             if (messages.length > 0) {
               const lastMessage = messages[messages.length - 1];
-              chat.lastMessage = lastMessage.text;
+              chat.lastMessage = lastMessage.text?.substring(0, 100) || ''; // Limit preview length
               chat.lastMessageTime = lastMessage.timestamp;
               
-              // Calculate unread count (messages not from current user)
+              // Calculate unread count (messages not from current user in last 24 hours)
               chat.unreadCount = messages.filter(
                 (msg) => !msg.isSender && new Date(msg.timestamp) > new Date(Date.now() - 24 * 60 * 60 * 1000)
               ).length;
             }
           } catch (error) {
-            console.warn(`Failed to enrich chat ${chat.id}:`, error);
+            console.warn(`Failed to enrich chat ${chat.id}:`, error instanceof Error ? error.message : error);
+            // Continue without enrichment rather than failing
           }
           
           return chat;
         })
       );
 
+      // Extract successful enrichments
+      const enrichedChats = enrichmentResults
+        .filter((result): result is PromiseFulfilledResult<ChatModel> => result.status === 'fulfilled')
+        .map(result => result.value);
+
       // Sort by last message time
-      return enrichedChats.sort((a, b) => {
+      const sortedChats = enrichedChats.sort((a, b) => {
         const timeA = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
         const timeB = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
         return timeB - timeA;
       });
+
+      console.log(`Returning ${sortedChats.length} enriched chats`);
+      return sortedChats;
     } catch (error) {
-      console.error('Failed to get chats:', error);
-      throw new Error('Failed to fetch chats');
+      console.error('Failed to get chats - Full error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error details:', {
+        message: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw new Error(`Failed to fetch chats: ${errorMessage}`);
     }
   }
 
