@@ -3,7 +3,6 @@
 import { Search, Plus, Filter, ChevronDown, ChevronRight, Hash, Lock, Bell, MoreVertical } from 'lucide-react';
 import { useState } from 'react';
 import { Project, Notification } from '@/lib/types';
-import { useAuth } from '@/lib/authContext';
 
 interface TeamsChannelListProps {
   projects: Project[];
@@ -21,7 +20,6 @@ export function TeamsChannelList({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'active' | 'archived'>('all');
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(true); // Default to expanded
-  const { user } = useAuth();
 
   const getInitials = (name: string) => {
     const words = name.split(' ');
@@ -62,37 +60,6 @@ export function TeamsChannelList({
           <button className="p-1.5 hover:bg-gray-100 rounded transition-colors">
             <Plus className="w-4 h-4 text-gray-600" />
           </button>
-        </div>
-
-        {/* User Info */}
-        {user && (
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-2.5 mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-medium">
-                {user.name?.substring(0, 2).toUpperCase() || 'DA'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">
-                  Welcome, {user.name || 'User'}!
-                </p>
-                <p className="text-xs text-indigo-600 truncate">
-                  {user.username || user.email}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-2 border border-blue-200">
-            <div className="text-xs font-medium text-blue-700">Projects</div>
-            <div className="text-2xl font-bold text-blue-900">{projects.length}</div>
-          </div>
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-2 border border-green-200">
-            <div className="text-xs font-medium text-green-700">Messages</div>
-            <div className="text-2xl font-bold text-green-900">4</div>
-          </div>
         </div>
 
         {/* Search */}
