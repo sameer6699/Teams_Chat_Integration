@@ -81,9 +81,18 @@ export class GraphApiService implements IGraphApiService {
     try {
       const client = new GraphApiClient(accessToken);
       const response = await client.getChatMessages(chatId);
-      return response.value.map((msg: any) =>
-        MessageModel.fromGraphApi(msg, chatId, userId)
-      );
+      
+      // Filter out system messages and transform
+      const messages = response.value
+        .map((msg: any) => MessageModel.fromGraphApi(msg, chatId, userId))
+        .filter((msg: MessageModel) => {
+          // Filter out system messages (no sender or system event messages)
+          return msg.sender && msg.sender.id && 
+                 !msg.text.includes('systemEventMessage') &&
+                 msg.text.trim().length > 0;
+        });
+      
+      return messages;
     } catch (error) {
       console.error('Failed to get chat messages:', error);
       throw new Error('Failed to fetch chat messages');

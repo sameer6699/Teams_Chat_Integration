@@ -89,6 +89,14 @@ export class MessageModel implements IMessage {
     const senderId = sender?.id || sender?.userId;
     const isSender = currentUserId ? (senderId === currentUserId || sender?.id === currentUserId) : false;
 
+    // Check if this is a system message
+    const rawContent = graphMessage.body?.content || graphMessage.body?.text || '';
+    const isSystemMsg = !sender || 
+                       rawContent.includes('<systemEventMessage') || 
+                       rawContent.includes('systemEventMessage') ||
+                       graphMessage.body?.contentType === 'systemEventMessage' ||
+                       graphMessage.messageType === 'system';
+
     // Build sender object with all available information
     const senderInfo = sender ? {
       id: sender.id || sender.userId || '',
@@ -98,10 +106,26 @@ export class MessageModel implements IMessage {
       userPrincipalName: sender.userPrincipalName || sender.mail || sender.email || '',
     } : undefined;
 
+    // Clean HTML from message content
+    let cleanedText = rawContent;
+    if (rawContent && typeof rawContent === 'string') {
+      // Remove HTML tags using regex (server-side safe)
+      cleanedText = rawContent
+        .replace(/<[^>]*>/g, '') // Remove HTML tags
+        .replace(/&nbsp;/g, ' ') // Replace &nbsp; with space
+        .replace(/&amp;/g, '&') // Replace &amp; with &
+        .replace(/&lt;/g, '<') // Replace &lt; with <
+        .replace(/&gt;/g, '>') // Replace &gt; with >
+        .replace(/&quot;/g, '"') // Replace &quot; with "
+        .replace(/&#39;/g, "'") // Replace &#39; with '
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .trim();
+    }
+
     return new MessageModel({
       id: graphMessage.id,
       chatId: chatId,
-      text: graphMessage.body?.content || graphMessage.body?.text || '',
+      text: cleanedText,
       timestamp: graphMessage.createdDateTime || graphMessage.lastModifiedDateTime || new Date().toISOString(),
       isSender: isSender,
       senderId: senderId,

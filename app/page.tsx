@@ -8,6 +8,7 @@ import { TeamsHeader } from '../components/TeamsHeader';
 import { TeamsChatArea } from '../components/TeamsChatArea';
 import { useAuth } from '../lib/authContext';
 import { Message } from '../lib/types';
+import { processMessage, isSystemMessage } from '../lib/messageUtils';
 
 interface Chat {
   id: string;
@@ -103,31 +104,50 @@ export default function Home() {
 
           if (data.success && data.data) {
             // Transform API messages to component Message format
-            const transformedMessages: Message[] = data.data.map((msg: any) => {
-              // Extract sender information from various possible structures
-              let senderInfo = null;
-              if (msg.sender) {
-                senderInfo = {
-                  id: msg.sender.id || msg.senderId || msg.sender.userId || '',
-                  name: msg.sender.displayName || msg.sender.name || msg.sender.givenName || 'Unknown',
-                  email: msg.sender.email || msg.sender.userPrincipalName || msg.sender.mail || '',
+            // Filter out system messages and clean HTML
+            const transformedMessages: Message[] = data.data
+              .map((msg: any) => {
+                // Check if system message first
+                if (isSystemMessage(msg)) {
+                  return null; // Filter out system messages
+                }
+                
+                // Process and clean message
+                const processedMsg = processMessage(msg);
+                if (!processedMsg) {
+                  return null; // Filter out if processing failed
+                }
+
+                // Extract sender information from various possible structures
+                let senderInfo = null;
+                if (processedMsg.sender) {
+                  senderInfo = {
+                    id: processedMsg.sender.id || processedMsg.senderId || processedMsg.sender.userId || '',
+                    name: processedMsg.sender.displayName || processedMsg.sender.name || processedMsg.sender.givenName || 'Unknown',
+                    email: processedMsg.sender.email || processedMsg.sender.userPrincipalName || processedMsg.sender.mail || '',
+                  };
+                } else if (processedMsg.from?.user) {
+                  senderInfo = {
+                    id: processedMsg.from.user.id || '',
+                    name: processedMsg.from.user.displayName || processedMsg.from.user.givenName || 'Unknown',
+                    email: processedMsg.from.user.userPrincipalName || processedMsg.from.user.mail || '',
+                  };
+                }
+                
+                // If no sender info, it's likely a system message - filter it out
+                if (!senderInfo) {
+                  return null;
+                }
+                
+                return {
+                  id: processedMsg.id,
+                  text: processedMsg.text, // Already cleaned by processMessage
+                  timestamp: processedMsg.timestamp || processedMsg.createdDateTime || new Date().toISOString(),
+                  isSender: processedMsg.isSender || false,
+                  sender: senderInfo,
                 };
-              } else if (msg.from?.user) {
-                senderInfo = {
-                  id: msg.from.user.id || '',
-                  name: msg.from.user.displayName || msg.from.user.givenName || 'Unknown',
-                  email: msg.from.user.userPrincipalName || msg.from.user.mail || '',
-                };
-              }
-              
-              return {
-                id: msg.id,
-                text: msg.text || msg.body?.content || msg.content || '',
-                timestamp: msg.timestamp || msg.createdDateTime || new Date().toISOString(),
-                isSender: msg.isSender || false,
-                sender: senderInfo,
-              };
-            });
+              })
+              .filter((msg: Message | null): msg is Message => msg !== null); // Remove null entries
             
             if (isMounted) {
               setMessages(transformedMessages);

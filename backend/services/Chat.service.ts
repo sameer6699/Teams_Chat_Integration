@@ -43,13 +43,27 @@ export class ChatService implements IChatService {
               userId
             );
             
-            if (messages.length > 0) {
-              const lastMessage = messages[messages.length - 1];
-              chat.lastMessage = lastMessage.text?.substring(0, 100) || ''; // Limit preview length
+            // Filter out system messages
+            const userMessages = messages.filter(msg => {
+              // Filter out messages with no sender (system messages)
+              return msg.sender && msg.sender.id;
+            });
+            
+            if (userMessages.length > 0) {
+              const lastMessage = userMessages[userMessages.length - 1];
+              // Clean HTML from last message preview
+              const cleanPreview = lastMessage.text
+                ?.replace(/<[^>]*>/g, '')
+                .replace(/&nbsp;/g, ' ')
+                .replace(/&amp;/g, '&')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .substring(0, 100) || '';
+              chat.lastMessage = cleanPreview;
               chat.lastMessageTime = lastMessage.timestamp;
               
-              // Calculate unread count (messages not from current user in last 24 hours)
-              chat.unreadCount = messages.filter(
+              // Calculate unread count (messages not from current user in last 24 hours, excluding system messages)
+              chat.unreadCount = userMessages.filter(
                 (msg) => !msg.isSender && new Date(msg.timestamp) > new Date(Date.now() - 24 * 60 * 60 * 1000)
               ).length;
             }

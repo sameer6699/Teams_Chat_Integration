@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { LogOut, Settings, User, HelpCircle, Shield } from 'lucide-react';
+import { LogOut, Settings, User } from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
 import { useRouter } from 'next/navigation';
 
@@ -98,34 +98,6 @@ export function UserMenuDropdown() {
               <div className="flex-1 text-left">
                 <div className="font-medium">Settings</div>
                 <div className="text-xs text-gray-500">Preferences and privacy</div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => {
-                setIsDropdownOpen(false);
-                router.push('/admin-consent');
-              }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
-            >
-              <Shield className="w-4 h-4" />
-              <div className="flex-1 text-left">
-                <div className="font-medium">Admin Consent</div>
-                <div className="text-xs text-gray-500">Manage permissions</div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => {
-                setIsDropdownOpen(false);
-                // Add help navigation if needed
-              }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
-            >
-              <HelpCircle className="w-4 h-4" />
-              <div className="flex-1 text-left">
-                <div className="font-medium">Help & Support</div>
-                <div className="text-xs text-gray-500">Get help and support</div>
               </div>
             </button>
           </div>
