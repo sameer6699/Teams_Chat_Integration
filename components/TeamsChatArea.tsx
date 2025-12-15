@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Send, Smile, Paperclip, AtSign, Bold, Italic, Underline, MoreHorizontal, Loader2 } from 'lucide-react';
 import { Message } from '@/lib/types';
 import { useAuth } from '@/lib/authContext';
+import { wsClient } from '@/lib/websocket';
 
 interface TeamsChatAreaProps {
   messages: Message[];
@@ -47,7 +48,16 @@ export function TeamsChatArea({ messages, chatId, loading = false }: TeamsChatAr
 
       if (response.ok) {
         setNewMessage('');
-        // Messages will be refreshed by the parent component
+        
+        // Also send via WebSocket if connected (for real-time delivery)
+        if (wsClient.isConnected()) {
+          wsClient.send('send_message', {
+            chatId: chatId,
+            message: newMessage.trim(),
+          });
+        }
+        
+        // Messages will be refreshed by the parent component or WebSocket
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('Failed to send message:', errorData);

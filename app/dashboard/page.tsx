@@ -9,6 +9,7 @@ import { TeamsChatArea } from '@/components/TeamsChatArea';
 import { useAuth } from '@/lib/authContext';
 import { Message } from '@/lib/types';
 import { processMessage, isSystemMessage } from '@/lib/messageUtils';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 interface Chat {
   id: string;
@@ -63,7 +64,22 @@ export default function DashboardPage() {
     fetchChatDetails();
   }, [selectedChatId, isAuthenticated, getAccessToken]);
 
-  // Fetch messages when a chat is selected
+  // WebSocket connection for real-time messages
+  const { isConnected: wsConnected, messages: wsMessages } = useWebSocket({
+    chatId: selectedChatId,
+    enabled: isAuthenticated && !!selectedChatId,
+    onMessage: (newMessage) => {
+      // Add new message from WebSocket
+      setMessages(prev => {
+        if (prev.some(msg => msg.id === newMessage.id)) {
+          return prev; // Message already exists
+        }
+        return [...prev, newMessage];
+      });
+    },
+  });
+
+  // Fetch messages when a chat is selected (initial load + fallback if WebSocket fails)
   useEffect(() => {
     // Don't set up polling if chat is not selected or user is not authenticated
     if (!selectedChatId || !isAuthenticated) {
@@ -172,12 +188,22 @@ export default function DashboardPage() {
     // Initial fetch
     fetchMessages();
 
-    // Set up polling interval: 20 seconds to prevent excessive API calls
+    // Set up polling interval as fallback if WebSocket is not connected
+    // Poll less frequently if WebSocket is connected (60 seconds vs 20 seconds)
+    const pollInterval = wsConnected ? 60000 : 20000;
+    
     intervalId = setInterval(() => {
+      // Only poll if WebSocket is not connected or as backup
       if (selectedChatId && isAuthenticated && isMounted) {
-        fetchMessages();
+        if (!wsConnected) {
+          // WebSocket not connected, use polling
+          fetchMessages();
+        } else {
+          // WebSocket connected, but do a periodic sync every 60 seconds
+          fetchMessages();
+        }
       }
-    }, 20000); // 20 seconds interval
+    }, pollInterval);
     
     // Cleanup function
     return () => {
@@ -187,7 +213,7 @@ export default function DashboardPage() {
         intervalId = null;
       }
     };
-  }, [selectedChatId, isAuthenticated, getAccessToken]);
+  }, [selectedChatId, isAuthenticated, getAccessToken, wsConnected]);
 
   const getChatDisplayName = (chat: Chat | null): string => {
     if (!chat) return 'Select a chat';
