@@ -252,19 +252,23 @@ export default function DashboardPage() {
         />
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col bg-white">
-          {/* Teams-style Header */}
-          <TeamsHeader
-            channelName={getChatDisplayName(selectedChat)}
-            membersCount={getMembersCount(selectedChat)}
-          />
+        <div className="flex-1 flex flex-col bg-white overflow-hidden">
+          {/* Teams-style Header - Fixed at top */}
+          <div className="flex-shrink-0">
+            <TeamsHeader
+              channelName={getChatDisplayName(selectedChat)}
+              membersCount={getMembersCount(selectedChat)}
+            />
+          </div>
 
-          {/* Teams-style Chat Area */}
-          <TeamsChatArea
-            messages={messages}
-            chatId={selectedChatId || undefined}
-            loading={loadingMessages}
-          />
+          {/* Teams-style Chat Area - Scrollable */}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <TeamsChatArea
+              messages={messages}
+              chatId={selectedChatId || undefined}
+              loading={loadingMessages}
+            />
+          </div>
         </div>
       </div>
     </AuthGuard>
