@@ -22,6 +22,89 @@ const handle = app.getRequestHandler();
 
 // Store active connections
 const activeConnections = new Map<string, Set<string>>(); // chatId -> Set of socketIds
+// Store active user polling
+const activeUserPolling = new Map<string, boolean>(); // userId -> isPolling
+
+// Socket.IO server instance (will be initialized in app.prepare())
+let io: SocketIOServer | null = null;
+
+// Function to broadcast chat list updates to all connected users
+export function broadcastChatUpdate(userId: string, chatData: any) {
+  if (!io) {
+    console.warn('Socket.IO not initialized yet, cannot broadcast chat update');
+    return;
+  }
+  io.to(`user:${userId}`).emit('chat_updated', {
+    type: 'chat_updated',
+    chat: chatData,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+// Function to broadcast channel list updates to all connected users
+export function broadcastChannelUpdate(userId: string, channelData: any) {
+  if (!io) {
+    console.warn('Socket.IO not initialized yet, cannot broadcast channel update');
+    return;
+  }
+  io.to(`user:${userId}`).emit('channel_updated', {
+    type: 'channel_updated',
+    channel: channelData,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+// Function to broadcast new chat to user
+export function broadcastNewChat(userId: string, chatData: any) {
+  if (!io) {
+    console.warn('Socket.IO not initialized yet, cannot broadcast new chat');
+    return;
+  }
+  io.to(`user:${userId}`).emit('chat_created', {
+    type: 'chat_created',
+    chat: chatData,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+// Function to broadcast new channel to user
+export function broadcastNewChannel(userId: string, channelData: any) {
+  if (!io) {
+    console.warn('Socket.IO not initialized yet, cannot broadcast new channel');
+    return;
+  }
+  io.to(`user:${userId}`).emit('channel_created', {
+    type: 'channel_created',
+    channel: channelData,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+// Function to broadcast new message to all clients in a chat room
+export function broadcastMessage(chatId: string, messageData: any) {
+  if (!io) {
+    console.warn('Socket.IO not initialized yet, cannot broadcast message');
+    return;
+  }
+  
+  // Ensure sender format matches frontend Message interface
+  const formattedMessage = {
+    ...messageData,
+    sender: messageData.sender ? {
+      id: messageData.sender.id || messageData.senderId || '',
+      name: messageData.sender.name || messageData.sender.displayName || 'Unknown',
+      email: messageData.sender.email || messageData.sender.userPrincipalName || '',
+    } : undefined,
+  };
+  
+  console.log(`Broadcasting message to chat ${chatId}:`, formattedMessage.id);
+  io.to(chatId).emit('message', {
+    type: 'message',
+    chatId,
+    message: formattedMessage,
+    timestamp: new Date().toISOString(),
+  });
+}
 
 app.prepare().then(() => {
   const server = createServer(async (req, res) => {
@@ -36,7 +119,7 @@ app.prepare().then(() => {
   });
 
   // Initialize Socket.IO
-  const io = new SocketIOServer(server, {
+  io = new SocketIOServer(server, {
     path: '/api/ws',
     cors: {
       origin: dev ? 'http://localhost:3000' : process.env.NEXT_PUBLIC_APP_URL,
@@ -74,7 +157,34 @@ app.prepare().then(() => {
 
     console.log(`WebSocket client connected: ${socket.id} (Chat: ${chatId}, User: ${userId})`);
 
-    // Join chat room
+    // Join user's personal room for chat/channel list updates
+    socket.join(`user:${userId}`);
+
+    // Start polling for this user's chat/channel updates if not already started
+    if (userId && socket.data.token && !activeUserPolling.has(userId)) {
+      (async () => {
+        try {
+          const { realtimeUpdateService } = await import('./backend/services/RealtimeUpdate.service');
+          
+          // Send initial chats and channels data via WebSocket
+          await sendInitialData(socket, userId, socket.data.token);
+          
+          // Start polling for updates
+          realtimeUpdateService.startPolling(userId, socket.data.token, 30000); // Poll every 30 seconds
+          activeUserPolling.set(userId, true);
+          console.log(`Started real-time polling for user: ${userId}`);
+        } catch (error) {
+          console.error('Error starting real-time polling:', error);
+        }
+      })();
+    } else if (userId && socket.data.token) {
+      // User already has polling, but send initial data anyway
+      sendInitialData(socket, userId, socket.data.token).catch(err => {
+        console.error('Error sending initial data:', err);
+      });
+    }
+
+    // Join chat room if chatId is provided
     if (chatId) {
       socket.join(chatId);
       
@@ -84,6 +194,20 @@ app.prepare().then(() => {
       }
       activeConnections.get(chatId)!.add(socket.id);
 
+      // Start polling for new messages in this chat
+      (async () => {
+        try {
+          const { messagePollingService } = await import('./backend/services/MessagePolling.service');
+          messagePollingService.addActiveChat(userId, chatId);
+          // Start polling if not already started for this user
+          if (!messagePollingService['userPollingIntervals'].has(userId)) {
+            messagePollingService.startPolling(userId, socket.data.token, [chatId], 10000); // Poll every 10 seconds
+          }
+        } catch (error) {
+          console.error('Error starting message polling:', error);
+        }
+      })();
+
       // Notify client of successful connection
       socket.emit('connected', {
         chatId,
@@ -91,6 +215,33 @@ app.prepare().then(() => {
         timestamp: new Date().toISOString(),
       });
     }
+
+    // Handle chat selection (user wants to receive messages for a specific chat)
+    socket.on('select_chat', async (data: { chatId: string }) => {
+      const { chatId: selectedChatId } = data;
+      if (selectedChatId) {
+        // Leave previous chat room if any
+        if (chatId) {
+          socket.leave(chatId);
+        }
+        
+        // Join new chat room
+        socket.join(selectedChatId);
+        socket.data.chatId = selectedChatId;
+        
+        // Add to active chats for message polling
+        try {
+          const { messagePollingService } = await import('./backend/services/MessagePolling.service');
+          messagePollingService.addActiveChat(userId, selectedChatId);
+          
+          // Get current active chats for this user
+          const activeChats = messagePollingService['userActiveChats'].get(userId) || new Set();
+          messagePollingService.startPolling(userId, socket.data.token, Array.from(activeChats), 10000);
+        } catch (error) {
+          console.error('Error handling chat selection:', error);
+        }
+      }
+    });
 
     // Handle message sending
     socket.on('send_message', async (data: { chatId: string; message: string }) => {
@@ -156,7 +307,7 @@ app.prepare().then(() => {
     });
 
     // Handle disconnection
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
       console.log(`WebSocket client disconnected: ${socket.id}`);
 
       // Remove from active connections
@@ -164,6 +315,35 @@ app.prepare().then(() => {
         activeConnections.get(chatId)!.delete(socket.id);
         if (activeConnections.get(chatId)!.size === 0) {
           activeConnections.delete(chatId);
+        }
+      }
+
+      // Remove chat from active chats for message polling
+      if (chatId && userId) {
+        try {
+          const { messagePollingService } = await import('./backend/services/MessagePolling.service');
+          messagePollingService.removeActiveChat(userId, chatId);
+        } catch (error) {
+          console.error('Error removing active chat:', error);
+        }
+      }
+
+      // Check if user has any other active connections
+      const userRoom = io.sockets.adapter.rooms.get(`user:${userId}`);
+      if (!userRoom || userRoom.size === 0) {
+        // No more connections for this user, stop polling
+        try {
+          const { realtimeUpdateService } = await import('./backend/services/RealtimeUpdate.service');
+          realtimeUpdateService.stopPolling(userId);
+          activeUserPolling.delete(userId);
+          
+          // Also stop message polling
+          const { messagePollingService } = await import('./backend/services/MessagePolling.service');
+          messagePollingService.stopPolling(userId);
+          
+          console.log(`Stopped real-time polling for user: ${userId}`);
+        } catch (error) {
+          console.error('Error stopping real-time polling:', error);
         }
       }
 
@@ -188,6 +368,52 @@ app.prepare().then(() => {
       console.log(`> WebSocket server running on ws://${hostname}:${port}/api/ws`);
     });
 });
+
+/**
+ * Send initial chats and channels data to client via WebSocket
+ */
+async function sendInitialData(socket: any, userId: string, token: string): Promise<void> {
+  try {
+    console.log(`Sending initial data to user: ${userId}`);
+    
+    // Import services
+    const { ChatService } = await import('./backend/services/Chat.service');
+    const { ChannelService } = await import('./backend/services/Channel.service');
+    
+    const chatService = new ChatService();
+    const channelService = new ChannelService();
+    
+    // Fetch chats and channels
+    const [chats, channels] = await Promise.all([
+      chatService.getAllChats(token, userId).catch(err => {
+        console.error('Error fetching chats:', err);
+        return [];
+      }),
+      channelService.getAllChannels(token).catch(err => {
+        console.error('Error fetching channels:', err);
+        return [];
+      }),
+    ]);
+    
+    // Send chats via WebSocket
+    socket.emit('chats_loaded', {
+      type: 'chats_loaded',
+      chats: chats.map(chat => chat.toJSON()),
+      timestamp: new Date().toISOString(),
+    });
+    
+    // Send channels via WebSocket
+    socket.emit('channels_loaded', {
+      type: 'channels_loaded',
+      channels: channels.map(channel => channel.toJSON()),
+      timestamp: new Date().toISOString(),
+    });
+    
+    console.log(`Sent initial data: ${chats.length} chats, ${channels.length} channels`);
+  } catch (error) {
+    console.error('Error sending initial data:', error);
+  }
+}
 
 /**
  * Extract user ID from JWT token

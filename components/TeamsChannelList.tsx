@@ -3,6 +3,7 @@
 import { Search, Plus, ChevronDown, ChevronRight, MoreVertical, Loader2, AlertCircle, Sparkles, AtSign, MessageSquare, Hash, Circle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/authContext';
+import { useRealtimeChats } from '@/hooks/useRealtimeChats';
 
 // Chat interface matching the API response
 interface Chat {
@@ -61,155 +62,168 @@ export function TeamsChannelList({
   const [isUnreadExpanded, setIsUnreadExpanded] = useState(true);
   const { isAuthenticated, getAccessToken, user } = useAuth();
 
-  // Fetch chats and teams from Microsoft Graph API
+  // Real-time WebSocket updates for chats and channels
+  const { updateChatsRef, updateChannelsRef } = useRealtimeChats({
+    enabled: isAuthenticated,
+    // Initial load via WebSocket
+    onChatsLoaded: (loadedChats) => {
+      console.log('Real-time: Initial chats loaded via WebSocket', loadedChats.length);
+      setChats(loadedChats);
+      updateChatsRef(loadedChats);
+      // Only set loading to false if we have both chats and channels, or if channels are already loaded
+      if (channels.length > 0 || loadedChats.length > 0) {
+        setLoading(false);
+      }
+    },
+    onChannelsLoaded: (loadedChannels) => {
+      console.log('Real-time: Initial channels loaded via WebSocket', loadedChannels.length);
+      setChannels(loadedChannels);
+      updateChannelsRef(loadedChannels);
+      // Only set loading to false if we have both chats and channels, or if chats are already loaded
+      if (chats.length > 0 || loadedChannels.length > 0) {
+        setLoading(false);
+      }
+    },
+    // Real-time updates
+    onChatsUpdate: (updatedChats) => {
+      console.log('Real-time: Updating chats list', updatedChats.length);
+      setChats(updatedChats);
+    },
+    onChannelsUpdate: (updatedChannels) => {
+      console.log('Real-time: Updating channels list', updatedChannels.length);
+      setChannels(updatedChannels);
+    },
+    onChatCreated: (newChat) => {
+      console.log('Real-time: New chat created', newChat);
+      setChats(prev => {
+        // Check if chat already exists
+        if (prev.some(chat => chat.id === newChat.id)) {
+          return prev;
+        }
+        return [...prev, newChat];
+      });
+    },
+    onChatUpdated: (updatedChat) => {
+      console.log('Real-time: Chat updated', updatedChat);
+      setChats(prev => {
+        const updated = prev.map(chat =>
+          chat.id === updatedChat.id ? { ...chat, ...updatedChat } : chat
+        );
+        // If unread count is 0 or undefined, ensure it's set to 0
+        return updated.map(chat => 
+          chat.id === updatedChat.id && updatedChat.unreadCount === 0
+            ? { ...chat, unreadCount: 0 }
+            : chat
+        );
+      });
+    },
+    onChannelCreated: (newChannel) => {
+      console.log('Real-time: New channel created', newChannel);
+      setChannels(prev => {
+        // Check if channel already exists
+        if (prev.some(channel => channel.id === newChannel.id && channel.teamId === newChannel.teamId)) {
+          return prev;
+        }
+        return [...prev, newChannel];
+      });
+    },
+    onChannelUpdated: (updatedChannel) => {
+      console.log('Real-time: Channel updated', updatedChannel);
+      setChannels(prev => prev.map(channel =>
+        channel.id === updatedChannel.id && channel.teamId === updatedChannel.teamId
+          ? { ...channel, ...updatedChannel }
+          : channel
+      ));
+    },
+  });
+
+  // Fallback: Fetch chats and channels via API if WebSocket doesn't load data within 5 seconds
   useEffect(() => {
-    // Don't set up polling if not authenticated
     if (!isAuthenticated) {
       setLoading(false);
       return;
     }
 
     let isMounted = true;
-    let intervalId: NodeJS.Timeout | null = null;
+    let fallbackTimeout: NodeJS.Timeout | null = null;
 
-    const fetchData = async () => {
-      if (!isAuthenticated || !isMounted) {
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        const accessToken = await getAccessToken();
-        if (!accessToken || !isMounted) {
-          return;
-        }
-
-        // Fetch chats
+    // Set a timeout to fetch via API if WebSocket doesn't provide data
+    fallbackTimeout = setTimeout(async () => {
+      // Only fetch if we still don't have data
+      if (isMounted && (chats.length === 0 || channels.length === 0)) {
+        console.log('WebSocket timeout: Fetching data via API as fallback');
+        
         try {
-          const chatsResponse = await fetch('/api/chats', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`,
-            },
-            credentials: 'include',
-          });
+          const accessToken = await getAccessToken();
+          if (!accessToken || !isMounted) return;
 
-          if (!isMounted) return;
+          // Fetch chats if not loaded
+          if (chats.length === 0) {
+            try {
+              const chatsResponse = await fetch('/api/chats', {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${accessToken}`,
+                },
+                credentials: 'include',
+              });
 
-          if (!chatsResponse.ok) {
-            const errorData = await chatsResponse.json().catch(() => ({}));
-            const errorMessage = errorData.message || errorData.error || `Failed to fetch chats: ${chatsResponse.status}`;
-            console.error('Chat fetch error details:', {
-              status: chatsResponse.status,
-              statusText: chatsResponse.statusText,
-              errorData,
-              errorMessage,
-            });
-            throw new Error(errorMessage);
-          }
-
-          const chatsData = await chatsResponse.json();
-          if (!isMounted) return;
-
-          console.log('Chats API response:', chatsData);
-          
-          if (chatsData.success && chatsData.data) {
-            console.log(`Successfully loaded ${chatsData.data.length} chats`);
-            if (chatsData.data.length > 0) {
-              console.log('Sample chat data:', chatsData.data[0]);
-            }
-            setChats(chatsData.data);
-          } else {
-            console.warn('Chats API returned success=false or no data:', chatsData);
-            setChats([]);
-          }
-        } catch (chatError) {
-          console.error('Error fetching chats:', chatError);
-          // Continue to fetch channels even if chats fail
-        }
-
-        // Fetch channels independently (even if chats fail)
-        try {
-          if (!isMounted) return;
-          
-          const channelsResponse = await fetch('/api/channels', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`,
-            },
-            credentials: 'include',
-          });
-
-          if (!isMounted) return;
-
-          if (channelsResponse.ok) {
-            const channelsData = await channelsResponse.json();
-            if (!isMounted) return;
-
-            console.log('Channels API response:', channelsData);
-
-            if (channelsData.success && channelsData.data && Array.isArray(channelsData.data)) {
-              console.log(`Successfully loaded ${channelsData.data.length} channels`);
-              // Log first channel for debugging
-              if (channelsData.data.length > 0) {
-                console.log('Sample channel data:', channelsData.data[0]);
+              if (chatsResponse.ok) {
+                const chatsData = await chatsResponse.json();
+                if (chatsData.success && chatsData.data && isMounted) {
+                  setChats(chatsData.data);
+                  updateChatsRef(chatsData.data);
+                }
               }
-              setChannels(channelsData.data);
-            } else {
-              console.warn('Channels API returned success=false or no data:', channelsData);
-              setChannels([]);
+            } catch (err) {
+              console.error('Fallback: Error fetching chats:', err);
             }
-          } else {
-            // Log error details
-            const errorData = await channelsResponse.json().catch(() => ({}));
-            console.error('Channels fetch error:', {
-              status: channelsResponse.status,
-              statusText: channelsResponse.statusText,
-              errorData,
-            });
-            // Set empty array on error so UI shows "No channels found" instead of loading forever
-            setChannels([]);
           }
-        } catch (channelError) {
-          console.error('Channels fetch exception:', channelError);
-          // Set empty array on exception
-          setChannels([]);
-        }
 
-      } catch (err) {
-        if (!isMounted) return;
-        console.error('Error in fetchData:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load data');
-      } finally {
-        if (isMounted) {
-          setLoading(false);
+          // Fetch channels if not loaded
+          if (channels.length === 0) {
+            try {
+              const channelsResponse = await fetch('/api/channels', {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${accessToken}`,
+                },
+                credentials: 'include',
+              });
+
+              if (channelsResponse.ok) {
+                const channelsData = await channelsResponse.json();
+                if (channelsData.success && channelsData.data && isMounted) {
+                  setChannels(channelsData.data);
+                  updateChannelsRef(channelsData.data);
+                }
+              }
+            } catch (err) {
+              console.error('Fallback: Error fetching channels:', err);
+            }
+          }
+
+          if (isMounted) {
+            setLoading(false);
+          }
+        } catch (err) {
+          console.error('Fallback: Error in fetchData:', err);
+          if (isMounted) {
+            setLoading(false);
+          }
         }
       }
-    };
+    }, 5000); // Wait 5 seconds for WebSocket to load data
 
-    // Initial fetch
-    fetchData();
-
-    // Set up polling interval: 30 seconds to prevent excessive API calls
-    intervalId = setInterval(() => {
-      if (isAuthenticated && isMounted) {
-        fetchData();
-      }
-    }, 30000); // 30 seconds interval
-    
-    // Cleanup function
     return () => {
       isMounted = false;
-      if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
+      if (fallbackTimeout) {
+        clearTimeout(fallbackTimeout);
       }
     };
-  }, [isAuthenticated, getAccessToken]);
+  }, [isAuthenticated, getAccessToken, chats.length, channels.length, updateChatsRef, updateChannelsRef]);
 
   const getInitials = (name: string) => {
     if (!name) return '??';
@@ -265,9 +279,9 @@ export function TeamsChannelList({
     });
   };
 
-  // Get unread chats
+  // Get unread chats (only show chats with unreadCount > 0)
   const unreadChats = chats.filter(chat => 
-    chat.unreadCount && chat.unreadCount > 0
+    chat.unreadCount !== undefined && chat.unreadCount !== null && chat.unreadCount > 0
   );
 
   // Get favourites (user's own chat or starred chats)

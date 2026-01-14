@@ -148,6 +148,16 @@ export class ChatController {
       // Send message
       const sentMessage = await this.chatService.sendMessage(accessToken, chatId, message, userId);
 
+      // Broadcast message via WebSocket to all connected clients in this chat
+      try {
+        const { broadcastMessage } = await import('../../server');
+        const messageData = sentMessage.toJSON();
+        broadcastMessage(chatId, messageData);
+      } catch (wsError) {
+        console.error('Error broadcasting message via WebSocket:', wsError);
+        // Continue even if WebSocket broadcast fails
+      }
+
       return NextResponse.json({
         success: true,
         data: sentMessage.toJSON(),
@@ -177,10 +187,27 @@ export class ChatController {
         return NextResponse.json({ error: 'Unauthorized', message: 'No access token provided' }, { status: 401 });
       }
 
-      // Mark as read
-      await this.chatService.markChatAsRead(accessToken, chatId);
+      // Get user ID from authenticated request
+      const userId = request.userId;
 
-      return NextResponse.json({ success: true });
+      // Mark as read and get updated chat
+      const updatedChat = await this.chatService.markChatAsRead(accessToken, chatId, userId);
+
+      // Broadcast the update via WebSocket if available
+      if (updatedChat && userId) {
+        try {
+          const { broadcastChatUpdate } = await import('../../server');
+          broadcastChatUpdate(userId, updatedChat.toJSON());
+        } catch (wsError) {
+          console.error('Error broadcasting chat update:', wsError);
+          // Continue even if WebSocket broadcast fails
+        }
+      }
+
+      return NextResponse.json({ 
+        success: true,
+        data: updatedChat ? updatedChat.toJSON() : null,
+      });
     } catch (error) {
       console.error('Mark chat as read error:', error);
       return NextResponse.json(

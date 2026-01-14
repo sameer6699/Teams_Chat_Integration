@@ -47,17 +47,15 @@ export function TeamsChatArea({ messages, chatId, loading = false }: TeamsChatAr
       });
 
       if (response.ok) {
+        const messageData = await response.json();
         setNewMessage('');
         
-        // Also send via WebSocket if connected (for real-time delivery)
-        if (wsClient.isConnected()) {
-          wsClient.send('send_message', {
-            chatId: chatId,
-            message: newMessage.trim(),
-          });
-        }
+        // Message is already sent via API and will be broadcast by the server
+        // No need to send again via WebSocket - server handles broadcasting
+        // The WebSocket will receive the message via the 'message' event
         
-        // Messages will be refreshed by the parent component or WebSocket
+        // Optionally add message to local state immediately for instant feedback
+        // (though WebSocket should deliver it in real-time)
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('Failed to send message:', errorData);

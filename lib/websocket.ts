@@ -168,10 +168,17 @@ export class WebSocketClient {
    * Switch to a different chat
    */
   switchChat(chatId: string): void {
-    if (this.chatId !== chatId && this.accessToken) {
-      // Update query parameters and reconnect
-      this.disconnect();
-      this.connect(this.accessToken, chatId);
+    if (this.chatId !== chatId) {
+      // Emit select_chat event - server will handle room joining
+      if (this.socket?.connected) {
+        this.socket.emit('select_chat', { chatId });
+        this.chatId = chatId;
+        console.log(`WebSocket: Switched to chat ${chatId}`);
+      } else if (this.accessToken) {
+        // Reconnect if not connected with new chatId
+        this.disconnect();
+        this.connect(this.accessToken, chatId);
+      }
     }
   }
 

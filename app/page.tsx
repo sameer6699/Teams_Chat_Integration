@@ -20,6 +20,7 @@ interface Chat {
     displayName: string;
     userId: string;
   }>;
+  channelData?: any; // Store channel data if it's a channel
 }
 
 export default function Home() {
@@ -29,7 +30,27 @@ export default function Home() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const { isAuthenticated, getAccessToken } = useAuth();
 
-  // Fetch chat details when a chat is selected
+  // Function to mark chat as read
+  const markChatAsRead = async (chatId: string, accessToken: string) => {
+    try {
+      const response = await fetch(`/api/chats/${chatId}/read`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        console.log(`Chat ${chatId} marked as read`);
+      }
+    } catch (error) {
+      console.error('Error marking chat as read:', error);
+    }
+  };
+
+  // Fetch chat or channel details when selected
   useEffect(() => {
     const fetchChatDetails = async () => {
       if (!selectedChatId || !isAuthenticated) {
@@ -41,23 +62,78 @@ export default function Home() {
         const accessToken = await getAccessToken();
         if (!accessToken) return;
 
-        const response = await fetch(`/api/chats/${selectedChatId}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
-          credentials: 'include',
-        });
+        // Check if it's a channel (format: channel-{teamId}-{channelId})
+        if (selectedChatId.startsWith('channel-')) {
+          // Extract channel ID from the format: channel-{teamId}-{channelId}
+          // The format is: channel-{teamId}-{channelId}
+          // We need to find the last occurrence of the pattern
+          const match = selectedChatId.match(/^channel-(.+?)-(.+)$/);
+          
+          if (match) {
+            const teamId = match[1];
+            const channelId = match[2];
+            
+            // Fetch channels to find the selected channel
+            const channelsResponse = await fetch('/api/channels', {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
+              },
+              credentials: 'include',
+            });
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data) {
-            setSelectedChat(data.data);
+            if (channelsResponse.ok) {
+              const channelsData = await channelsResponse.json();
+              if (channelsData.success && channelsData.data) {
+                // Find the channel that matches - check both by ID and by constructed ID
+                const channel = channelsData.data.find((ch: any) => {
+                  const constructedId = `channel-${ch.teamId || 'unknown'}-${ch.id}`;
+                  return ch.id === channelId || constructedId === selectedChatId;
+                });
+                
+                if (channel) {
+                  // Convert channel to Chat-like format for display
+                  setSelectedChat({
+                    id: selectedChatId,
+                    topic: channel.displayName || channel.name || 'Unnamed Channel',
+                    chatType: 'group' as const,
+                    members: [], // Channels don't have members in the same way
+                    channelData: channel, // Store original channel data
+                  });
+                  console.log('Channel selected:', channel.displayName, 'Initials:', getInitials(channel.displayName || channel.name || ''));
+                } else {
+                  console.warn('Channel not found:', channelId, 'in channels list');
+                }
+              }
+            }
+          }
+        } else {
+          // Regular chat - fetch chat details
+          const response = await fetch(`/api/chats/${selectedChatId}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`,
+            },
+            credentials: 'include',
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data) {
+              setSelectedChat(data.data);
+              
+              // Automatically mark chat as read when selected (even if not displayed)
+              // This happens in background
+              markChatAsRead(selectedChatId, accessToken).catch(err => {
+                console.error('Error auto-marking chat as read on selection:', err);
+              });
+            }
           }
         }
       } catch (error) {
-        console.error('Error fetching chat details:', error);
+        console.error('Error fetching chat/channel details:', error);
       }
     };
 
@@ -68,14 +144,33 @@ export default function Home() {
   const { isConnected: wsConnected, messages: wsMessages } = useWebSocket({
     chatId: selectedChatId,
     enabled: isAuthenticated && !!selectedChatId,
-    onMessage: (newMessage) => {
+    onMessage: async (newMessage) => {
+      console.log('Real-time: New message received via WebSocket', newMessage);
+      
       // Add new message from WebSocket
       setMessages(prev => {
+        // Check if message already exists
         if (prev.some(msg => msg.id === newMessage.id)) {
+          console.log('Message already exists, skipping:', newMessage.id);
           return prev; // Message already exists
         }
+        console.log('Adding new message to state:', newMessage.id);
         return [...prev, newMessage];
       });
+
+      // Automatically mark chat as read when new message arrives (if chat is selected)
+      // This happens in background - chat doesn't need to be displayed
+      if (selectedChatId && !newMessage.isSender) {
+        // Only mark as read if message is not from current user
+        try {
+          const accessToken = await getAccessToken();
+          if (accessToken) {
+            await markChatAsRead(selectedChatId, accessToken);
+          }
+        } catch (error) {
+          console.error('Error auto-marking chat as read:', error);
+        }
+      }
     },
   });
 
@@ -167,6 +262,14 @@ export default function Home() {
             
             if (isMounted) {
               setMessages(transformedMessages);
+              
+              // Automatically mark chat as read when messages are loaded
+              // This happens in the background, chat doesn't need to be displayed
+              if (selectedChatId && transformedMessages.length > 0) {
+                markChatAsRead(selectedChatId, accessToken).catch(err => {
+                  console.error('Error marking chat as read:', err);
+                });
+              }
             }
           }
         } else {
@@ -216,7 +319,18 @@ export default function Home() {
   }, [selectedChatId, isAuthenticated, getAccessToken, wsConnected]);
 
   const getChatDisplayName = (chat: Chat | null): string => {
-    if (!chat) return 'Select a chat';
+    if (!chat) {
+      // If no chat but selectedChatId exists, try to get from channels
+      if (selectedChatId && selectedChatId.startsWith('channel-')) {
+        return 'Loading...';
+      }
+      return 'Select a chat';
+    }
+    
+    // If it's a channel, use channel display name
+    if (chat.channelData) {
+      return chat.channelData.displayName || chat.channelData.name || chat.topic || 'Unnamed Channel';
+    }
     
     if (chat.topic) return chat.topic;
     
@@ -237,6 +351,18 @@ export default function Home() {
   const getMembersCount = (chat: Chat | null): number => {
     if (!chat || !chat.members) return 0;
     return chat.members.length;
+  };
+
+  // Helper function to get initials from a name
+  const getInitials = (name: string): string => {
+    if (!name) return '?';
+    const words = name.trim().split(/\s+/);
+    if (words.length === 1) {
+      // Single word - take first 2 characters
+      return name.substring(0, 2).toUpperCase();
+    }
+    // Multiple words - take first letter of first two words
+    return (words[0][0] + (words[1]?.[0] || '')).toUpperCase();
   };
 
   return (

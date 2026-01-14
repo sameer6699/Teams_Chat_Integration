@@ -12,7 +12,7 @@ export interface IChatService {
   getChatById(accessToken: string, chatId: string, userId?: string): Promise<ChatModel>;
   getChatMessages(accessToken: string, chatId: string, userId?: string): Promise<MessageModel[]>;
   sendMessage(accessToken: string, chatId: string, message: string, userId?: string): Promise<MessageModel>;
-  markChatAsRead(accessToken: string, chatId: string): Promise<void>;
+  markChatAsRead(accessToken: string, chatId: string, userId?: string): Promise<ChatModel | null>;
 }
 
 export class ChatService implements IChatService {
@@ -176,12 +176,29 @@ export class ChatService implements IChatService {
   }
 
   /**
-   * Mark chat as read (placeholder - would need Graph API support)
+   * Mark chat as read and update unread count
    */
-  async markChatAsRead(accessToken: string, chatId: string): Promise<void> {
-    // This would require additional Graph API permissions and endpoints
-    // For now, it's a placeholder
-    console.log(`Marking chat ${chatId} as read`);
+  async markChatAsRead(accessToken: string, chatId: string, userId?: string): Promise<ChatModel | null> {
+    try {
+      // Get the chat to update its unread count
+      const chat = await this.getChatById(accessToken, chatId, userId);
+      
+      if (chat && chat.unreadCount && chat.unreadCount > 0) {
+        // Decrease unread count (set to 0 when marked as read)
+        chat.unreadCount = 0;
+        
+        console.log(`Marked chat ${chatId} as read - unread count reset to 0`);
+        
+        // Return updated chat model for broadcasting
+        return chat;
+      }
+      
+      return chat;
+    } catch (error) {
+      console.error(`Error marking chat ${chatId} as read:`, error);
+      // Still return null to indicate failure, but don't throw
+      return null;
+    }
   }
 }
 
