@@ -8,6 +8,7 @@ import { UserModel, IUser } from '../models/User.model';
 import { ChatModel, IChat } from '../models/Chat.model';
 import { MessageModel, IMessage } from '../models/Message.model';
 import { TeamModel, ITeam } from '../models/Team.model';
+import { ChannelModel, IChannel } from '../models/Channel.model';
 
 export interface IGraphApiService {
   getCurrentUser(accessToken: string): Promise<UserModel>;
@@ -15,6 +16,7 @@ export interface IGraphApiService {
   getChatMessages(accessToken: string, chatId: string, userId?: string): Promise<MessageModel[]>;
   sendMessage(accessToken: string, chatId: string, message: string): Promise<MessageModel>;
   getTeams(accessToken: string): Promise<TeamModel[]>;
+  getChannels(accessToken: string): Promise<ChannelModel[]>;
 }
 
 export class GraphApiService implements IGraphApiService {
@@ -145,6 +147,37 @@ export class GraphApiService implements IGraphApiService {
       console.error('Failed to get teams - Full error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to fetch teams: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Get all channels from all teams for current user
+   */
+  async getChannels(accessToken: string): Promise<ChannelModel[]> {
+    try {
+      console.log('GraphApiService: Getting channels...');
+      const client = new GraphApiClient(accessToken);
+      const channelsData = await client.getChannels();
+      
+      console.log(`GraphApiService: Received ${channelsData.length} channels from Graph API`);
+      
+      // Transform to ChannelModel
+      const channels = channelsData.map(({ channel, teamId, teamName }) => {
+        try {
+          return ChannelModel.fromGraphApi(channel, teamId, teamName);
+        } catch (error) {
+          console.error(`Failed to transform channel ${channel.id}:`, error);
+          // Return a basic channel model if transformation fails
+          return ChannelModel.fromGraphApi(channel, teamId, teamName);
+        }
+      });
+      
+      console.log(`GraphApiService: Successfully transformed ${channels.length} channels`);
+      return channels;
+    } catch (error) {
+      console.error('GraphApiService: Failed to get channels - Full error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to fetch channels: ${errorMessage}`);
     }
   }
 }

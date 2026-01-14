@@ -31,6 +31,17 @@ export interface GraphTeam {
   webUrl: string;
 }
 
+export interface GraphChannel {
+  id: string;
+  displayName: string;
+  description?: string;
+  email?: string;
+  webUrl?: string;
+  membershipType?: 'standard' | 'private' | 'shared' | 'public';
+  createdDateTime?: string;
+  isFavoriteByDefault?: boolean;
+}
+
 export class GraphApiClient {
   private accessToken: string;
 
@@ -107,6 +118,56 @@ export class GraphApiClient {
 
   async getTeams(): Promise<{ value: GraphTeam[] }> {
     return this.makeRequest<{ value: GraphTeam[] }>(graphConfig.graphTeamsEndpoint);
+  }
+
+  /**
+   * Get all channels from all teams the user is a member of
+   */
+  async getChannels(): Promise<Array<{ channel: GraphChannel; teamId: string; teamName: string }>> {
+    try {
+      // First, get all teams
+      console.log('GraphApiClient: Fetching teams...');
+      const teamsResponse = await this.getTeams();
+      const teams = teamsResponse.value || [];
+      console.log(`GraphApiClient: Found ${teams.length} teams`);
+
+      if (teams.length === 0) {
+        console.warn('GraphApiClient: No teams found, returning empty channels array');
+        return [];
+      }
+
+      // Fetch channels for each team
+      const allChannels: Array<{ channel: GraphChannel; teamId: string; teamName: string }> = [];
+
+      for (const team of teams) {
+        try {
+          console.log(`GraphApiClient: Fetching channels for team: ${team.displayName} (${team.id})`);
+          const channelsEndpoint = `https://graph.microsoft.com/v1.0/teams/${team.id}/channels`;
+          const channelsResponse = await this.makeRequest<{ value: GraphChannel[] }>(channelsEndpoint);
+          
+          console.log(`GraphApiClient: Team ${team.displayName} - Found ${channelsResponse.value?.length || 0} channels`);
+          
+          if (channelsResponse.value && channelsResponse.value.length > 0) {
+            channelsResponse.value.forEach((channel) => {
+              allChannels.push({
+                channel,
+                teamId: team.id,
+                teamName: team.displayName,
+              });
+            });
+          }
+        } catch (error) {
+          console.error(`GraphApiClient: Failed to fetch channels for team ${team.displayName} (${team.id}):`, error);
+          // Continue with other teams even if one fails
+        }
+      }
+
+      console.log(`GraphApiClient: Total channels found: ${allChannels.length}`);
+      return allChannels;
+    } catch (error) {
+      console.error('GraphApiClient: Failed to get channels:', error);
+      throw new Error(`Failed to fetch channels: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async getChatMessages(chatId: string): Promise<{ value: any[] }> {
